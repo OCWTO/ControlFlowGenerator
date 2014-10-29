@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -10,16 +11,28 @@ import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.core.dom.ImportDeclaration;
+import org.eclipse.jdt.core.dom.ConstructorInvocation;
+import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jface.text.Document;
 
 /*TODO: re-organise the classes so that its more modular and readable, probably working on 1-3 class size program for now*/
+/*Program currently 'correctly' parses individual statements and ifs with just a then clause*/
+
+/*IDEAS for improvement/expansion
+ * initially we could get the file class name and then create a mapping to it so we can detect the constructor
+ * from a plain method
+ * 
+ * A current problem is that we're casting the block to a statement and lose all information about what type
+ * of statement there is.
+ * 
+ * For some reason putting a comment or array init in the verify method stopped it parsing completely...
+ */
 public class ControlFlowGenerator
 {
 	/*TODO make it work across multiple files*/
 	private File inputFile;
-	private Block mainMethodBody;
 	
 	/**
 	 * 
@@ -40,14 +53,78 @@ public class ControlFlowGenerator
 		
 		if(!hasMainMethod())
 			throw new Exception("The input file must contain a 	main method");
-		
-		System.out.println("Found main");
-		printMainContents();
 	}
 	
-	private void printMainContents()
+	/*This method takes in a MethodDeclaration object (see AST layout) and prints each line within in the form of
+	 * nodetype:code
+	 */
+	private void printMethodBody(MethodDeclaration inputMethod)
 	{
-		System.out.println(mainMethodBody.toString());
+		//inputMethod.
+		/* There's probably more significance to a constructor when parsing but I've not
+		 * thought about it yet
+		 */
+		if(!inputMethod.isConstructor())
+		{
+			System.out.println("Method " + inputMethod.getName().getFullyQualifiedName() + "{");
+		}
+		else
+		{
+			System.out.println("Constructor " + inputMethod.getName().getFullyQualifiedName() + "{");
+		}
+		
+		List<Statement> statementList = inputMethod.getBody().statements();
+		
+		//List<? extends Statement> abc = inputMethod.getBody().statements().
+		
+		
+//		for(int i = 0; i < abc.size(); i++)
+//		{
+//			System.out.println(abc.get(i).getNodeType());
+//			//System.out.println( (((ASTNode) inputMethod.getBody().statements().get(i)).getNodeType()));
+//		}
+		
+		for(Statement line : statementList)		/*Each statement is automatically appended with /n so no need to println*/
+		{
+			//System.out.println(line.
+			System.out.print(line.getNodeType() + ":");
+			
+			/*If it finds an if statement*/
+			if(line.getNodeType() == 25)
+			{
+				System.out.println("if("+ ((IfStatement) line).getExpression()+")");
+				Statement temp = ((IfStatement) line).getThenStatement();
+				
+				/*Lots of lovely casting, only way we can access what we want to. If the nodetype is of an if
+				 * then we cast to ifstatement object, get the then statement(body) and get the statements within
+				 * and parse them individually
+				 */
+				List<Statement> thenStatement = new ArrayList<Statement>();
+				
+				/*This is to deal with when the block is a collection of statements*/
+				try
+				{
+					thenStatement = ((Block) ((IfStatement) line).getThenStatement()).statements();
+				}
+				/*Exception thrown for ClassCast when there's a single statement that we're trying to cast into a block*/
+				catch(ClassCastException e)
+				{
+					Statement singleStatement = ((IfStatement) line).getThenStatement();
+					thenStatement.add(singleStatement);
+				}
+				
+				for (Statement individualStatements: thenStatement)
+				{
+					System.out.print(individualStatements.getNodeType() + ":");
+					System.out.print(individualStatements.toString());
+				}
+			}
+			else
+			{
+				System.out.print(line.toString());
+			}
+		}
+		System.out.println("}" + "\n");
 	}
 	
 	/**
@@ -88,23 +165,30 @@ public class ControlFlowGenerator
 					 * the brackets in class def.
 					 */
 					
+					/*Need to look into this at :http://help.eclipse.org/indigo/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fdom%2FBodyDeclaration.html
+					 * since we aren't looking at fields, not as if it matters since I doubt we can get this
+					 * working deep enough for that to matter in terms of our graphs
+					 */
 					for (BodyDeclaration body : bodies)
 					{
 						/*If its a method declaration*/
 						if (body.getNodeType() == ASTNode.METHOD_DECLARATION)
 						{
 							MethodDeclaration method = (MethodDeclaration) body;
-							if(method.getName().getFullyQualifiedName().toLowerCase().equals("main"))
-							{
-								mainMethodBody = method.getBody();
-								return true;
-							}
-							//System.out.println(method.getName().getFullyQualifiedName());
+							printMethodBody(method);
+							
+//							Checks name and finds the main method
+//							if(method.getName().getFullyQualifiedName().toLowerCase().equals("main"))
+//							{
+//								mainMethodBody = method.getBody();
+//								return true;
+//							}
 						}
 						/*TODO: figure out what the other node types correspond to so we
 						 * can identify things later on like globals dec, inner classes
 						 */
 					}
+					return true;
 				}
 			}
 		}
