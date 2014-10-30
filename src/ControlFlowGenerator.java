@@ -12,10 +12,13 @@ import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ConstructorInvocation;
+import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jface.text.Document;
+
+import com.ibm.icu.util.Calendar;
 
 /*TODO: re-organise the classes so that its more modular and readable, probably working on 1-3 class size program for now*/
 /*Program currently 'correctly' parses individual statements and ifs with just a then clause*/
@@ -116,12 +119,22 @@ public class ControlFlowGenerator
 				for (Statement individualStatements: thenStatement)
 				{
 					System.out.print(individualStatements.getNodeType() + ":");
+					if(individualStatements.toString().contains("TestClass"))
+					{
+						System.out.println("found");
+					}
 					System.out.print(individualStatements.toString());
 				}
 			}
 			else
 			{
+				if(line.toString().contains("TestClass("))
+				{
+					System.out.println(line.getNodeType());
+					System.out.println("found");
+				}
 				System.out.print(line.toString());
+				
 			}
 		}
 		System.out.println("}" + "\n");
@@ -169,6 +182,8 @@ public class ControlFlowGenerator
 					 * since we aren't looking at fields, not as if it matters since I doubt we can get this
 					 * working deep enough for that to matter in terms of our graphs
 					 */
+					
+					System.out.println(Calendar.getInstance().getTimeInMillis());
 					for (BodyDeclaration body : bodies)
 					{
 						/*If its a method declaration*/
@@ -188,6 +203,7 @@ public class ControlFlowGenerator
 						 * can identify things later on like globals dec, inner classes
 						 */
 					}
+					System.out.println(Calendar.getInstance().getTimeInMillis());
 					return true;
 				}
 			}
