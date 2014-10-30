@@ -16,6 +16,7 @@ public class Main
 		
 		File projectFolder = new File(System.getProperty("user.dir"));
 		
-		ControlFlowGenerator2 generator = new ControlFlowGenerator2(projectFolder, runnerFile);
+		ControlFlowGenerator generator = new ControlFlowGenerator(projectFolder, runnerFile);
 	}
+
 }

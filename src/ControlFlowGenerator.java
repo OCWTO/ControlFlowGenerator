@@ -1,10 +1,11 @@
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.SuffixFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
@@ -26,38 +27,180 @@ import org.eclipse.jface.text.Document;
  * of statement there is.
  * 
  * For some reason putting a comment or array init in the verify method stopped it parsing completely...
+ * 
+ * TODO: Look at resources incase things are changed and don't correctly work, for example if textualprintout then graphical
  */
 public class ControlFlowGenerator
 {
-	CompilationUnit unit;
-	
-	/*TODO make it work across multiple files*/
+	/*JDT variables*/
+	private CompilationUnit unit;
+	private String source;
+	private Document sourceDoc;
+	private ASTParser parser;
+
 	private File inputFile;
 	
+	//private MethodDeclaration mainMethod;
+	private List<File> projectFiles;
+	private int stateNumber;
+	
+	//Create class to represent states? Name/Number - Code inside - connectedstates?
+	private ArrayList<String> stateList;
 	/**
 	 * 
+	 * @param srcFolder The source folder of the project that contains
+	 * all of its .java files
 	 * @param inputFile The input file which the program is run on,
 	 * it must be a .java file and contain a main method
-	 * @throws Exception 
+	 * @throws Exception If there is no main method in the inputFile
 	 */
-	public ControlFlowGenerator(File inputFile) throws Exception
+	public ControlFlowGenerator(File srcFolder, File inputFile) throws Exception
 	{
-		if(!inputFile.getName().contains(".java"))
-			throw new Exception("The input file must be a '.java' file");
+		source = FileUtils.readFileToString(inputFile);
+		sourceDoc = new Document(source);
+		parser = ASTParser.newParser(AST.JLS8);
+		parser.setSource(sourceDoc.get().toCharArray());
+		unit = (CompilationUnit) parser.createAST(null);		/*Program sometimes stalls here for no known reason*/
+		unit.recordModifications();
+		
+		stateNumber = 0;
+		MethodDeclaration mainMethod;
+		this.inputFile = inputFile;
+	
+		if((mainMethod = hasMainMethod(unit.types())) == null)
+			throw new Exception("The input file must contain a 	main method");
+		collectJavaFiles(srcFolder);
+		
+		printoutClassTextual();
+		System.out.println("......................");
+		textualControlFlowPrintout(unit.types());
+	}
+	
+	public void textualControlFlowPrintout(List<AbstractTypeDeclaration> contents)
+	{
+		/*Get main method*/
+		MethodDeclaration mainMethod = hasMainMethod(contents);
+		
+		List<Statement> methodStatements = mainMethod.getBody().statements();
+		
+		/*For every statement*/
+	 	for(Statement toParse : methodStatements)
+		{
+			int statementType = toParse.getNodeType();
+			
+			/*
+			 * Initial plan is if we find an if, then if (statement) creates a link to the first line of code 
+			 * inside the then statement (statement = true link) and the last line of th 
+			 * and if(statement) also creates a link to the first line of the else statement, or if no else exists
+			 * then to the next line of code after the ifthen
+			 */
+			
+			/*
+			 *  1 Create entry and exit nodes and edges from the entry to the first basic
+				block, and edges from all basic blocks that contain an exit to the exit nodes
+				
+				2 Traverse the list of basic block and create an edge from one to another if it
+				follows immediately in some execution sequence (either as part of the
+				program sequence or as a jump target)
+				
+				3 Label edges representing condition transfer of control as either ‘t’ or ‘f’
+			 */
+			
+			/*Found a conditional*/
+			if(statementType == 25 || statementType == 24)
+			{
+				
+			}
+			else	/*Normal ExpressionStatements*/
+			{
+				
+			}
+			//25 = If statement, 24 = For
+		}
+		//
+		//So here
+		//1st thing. Find main method contents
+		//2nd Start parsing it
+		//3rd If object init is found
+		//4th if it is in the 
+	}
+	
+	public void graphicalControlFlowPrintout()
+	{
+		
+	}
+	
+	public void printoutClassTextual()
+	{
+		List<AbstractTypeDeclaration> fileContent = unit.types();
+		
+		/* So for everything in the file */
+		for (AbstractTypeDeclaration type : fileContent)
+		{
+			/* If its a class declaration, could be enum? */
+			//Issues could come here if its not a class
+			if (type.getNodeType() == ASTNode.TYPE_DECLARATION)
+			{
+				/* For every declaration e.g methods, global variables (everything between
+				 * the brackets in class def.*/
+				List<BodyDeclaration> bodies = type.bodyDeclarations();
+					
+				/*Need to look into this at :http://help.eclipse.org/indigo/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fdom%2FBodyDeclaration.html
+				 * since we aren't looking at fields, not as if it matters since I doubt we can get this
+				 * working deep enough for that to matter in terms of our graphs
+				 */
+				for (BodyDeclaration body : bodies)
+				{
+					/*If its a method declaration*/
+					if (body.getNodeType() == ASTNode.METHOD_DECLARATION)
+					{
+						MethodDeclaration method = (MethodDeclaration) body;
+						printMethodContents(method);
+						
+						/*Checks name and finds the main method TODO uncomment this out*/
+//						if(method.getName().getFullyQualifiedName().toLowerCase().equals("main"))
+//						{
+//							mainMethodBody = method.getBody();
+//							return true;
+//						}
+					}
+					/*TODO: figure out what the other node types correspond to so we
+					 * can identify things later on like globals dec, inner classes
+					 */
+				}
+			}
+		}
+	}
+	
+	//ok now once everything is setup we want to parse
+	//so we want options for textual printout of srcFile
+	//textual controlflow of everything
+	//graphical controlflow of everything
+	
+		//
+		//from here we want to gather all java files in the dir and check inputfile has main
+		//firstly lets figure out if there's a main to not waste time
+		
+		
+//		if(!inputFile.getName().contains(".java"))		//front end will cover this case
+//			throw new Exception("The input file must be a '.java' file");
 		
 		/* For now we will assume that we call this via a file selector, later
 		 * on we could apply a .java filter to it too.
 		 */
 		
-		this.inputFile = inputFile;
-		
-		if(!hasMainMethod())
-			throw new Exception("The input file must contain a 	main method");
-	}
+		//this.inputFile = inputFile;
 	
 	/*This method takes in a MethodDeclaration object (see AST layout) and prints each line within in the form of
 	 * nodetype:code
 	 */
+	
+	/*Takes in the source folder and adds all .java files in it and its subdirectories to projectFiles*/
+	private void collectJavaFiles(File srcFolder) throws IOException
+	{
+		projectFiles = (List<File>) FileUtils.listFiles(srcFolder, new SuffixFileFilter(".java"), TrueFileFilter.INSTANCE);
+	}
+	
 	private void printMethodContents(MethodDeclaration inputMethod)
 	{
 		/* There's probably more significance to a constructor when parsing but I've not
@@ -164,73 +307,41 @@ public class ControlFlowGenerator
 	 * @return <b>True</b> if a method called main has been found in the input file
 	 * or <b>False</b> if no main method was found
 	 */
-	private boolean hasMainMethod()
+	private MethodDeclaration hasMainMethod(List<AbstractTypeDeclaration> srcTypes)
 	{
-		try
-		{
-			/*TODO understand what the next 6 lines does...
-			 * and possibly make the values global so we can re-use*/
-			String source = FileUtils.readFileToString(inputFile);
-			Document document = new Document(source);
-			ASTParser parser = ASTParser.newParser(AST.JLS8);
-			parser.setSource(document.get().toCharArray());
-			unit = (CompilationUnit) parser.createAST(null);		/*Program sometimes stalls here for no known reason*/
-			unit.recordModifications();
+			/*Get all top level nodes (declarations)*/
+			List<AbstractTypeDeclaration> types = srcTypes;
 		
-			/*
-			 * Unit.types returns the live list of nodes for the top-level type declarations
-			 * of this compilation unit, in order of appearance. In this case it sort of holds
-			 * everything in the file, although there's been little testing.
-			 */
-			List<AbstractTypeDeclaration> types = unit.types();
-		
-			/* So for everything in the file */
+			/*So for everything in the file*/
 			for (AbstractTypeDeclaration type : types)
 			{
-				/* If its a class declaration, could be enum? */
-				/*TODO: deal with exception here that its not a class :/*/
+				/*If its a class declaration*/
 				if (type.getNodeType() == ASTNode.TYPE_DECLARATION)
 				{
+					/*Get the declaration body (so everything between { } in the class)*/
 					List<BodyDeclaration> bodies = type.bodyDeclarations();
-					/*
-					 * For every declaration e.g methods, global variables (everything between
-					 * the brackets in class def.
-					 */
-					
-					/*Need to look into this at :http://help.eclipse.org/indigo/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fdom%2FBodyDeclaration.html
-					 * since we aren't looking at fields, not as if it matters since I doubt we can get this
-					 * working deep enough for that to matter in terms of our graphs
-					 */
-					
-					long t1 = Calendar.getInstance().getTimeInMillis();
+
 					for (BodyDeclaration body : bodies)
 					{
 						/*If its a method declaration*/
 						if (body.getNodeType() == ASTNode.METHOD_DECLARATION)
 						{
 							MethodDeclaration method = (MethodDeclaration) body;
-							printMethodContents(method);
-							
-							/*Checks name and finds the main method TODO uncomment this out*/
-//							if(method.getName().getFullyQualifiedName().toLowerCase().equals("main"))
-//							{
-//								mainMethodBody = method.getBody();
-//								return true;
-//							}
+							if(method.getName().getFullyQualifiedName().toLowerCase().equals("main"))
+							{
+								/*getModifiers here is 9 because the value of static is 8 and public is 1. JDT
+								 *adds all modifiers values up.
+								 */
+								if(method.getModifiers() == 9 && method.getReturnType2().toString().equals("void"))
+								{
+									/*Value is assigned here so that the program knows where to start parsing from*/
+									return method;
+								}
+							}
 						}
-						/*TODO: figure out what the other node types correspond to so we
-						 * can identify things later on like globals dec, inner classes
-						 */
 					}
-					System.out.println("Run time " + (Calendar.getInstance().getTimeInMillis()-t1) + "ms");
-					return true;
 				}
 			}
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-		return false;
+		return null;
 	}
 }
