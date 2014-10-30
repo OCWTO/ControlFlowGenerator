@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -11,17 +12,11 @@ import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.core.dom.ConstructorInvocation;
-import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jface.text.Document;
-
-import com.ibm.icu.util.Calendar;
-
-/*TODO: re-organise the classes so that its more modular and readable, probably working on 1-3 class size program for now*/
-/*Program currently 'correctly' parses individual statements and ifs with just a then clause*/
 
 /*IDEAS for improvement/expansion
  * initially we could get the file class name and then create a mapping to it so we can detect the constructor
@@ -63,9 +58,8 @@ public class ControlFlowGenerator
 	/*This method takes in a MethodDeclaration object (see AST layout) and prints each line within in the form of
 	 * nodetype:code
 	 */
-	private void printMethodBody(MethodDeclaration inputMethod)
+	private void printMethodContents(MethodDeclaration inputMethod)
 	{
-		//inputMethod.
 		/* There's probably more significance to a constructor when parsing but I've not
 		 * thought about it yet
 		 */
@@ -78,30 +72,29 @@ public class ControlFlowGenerator
 			System.out.println("Constructor " + inputMethod.getName().getFullyQualifiedName() + "{");
 		}
 		
-		/*Everything that comes in here is of type ExpressionStatement, so I've got no idea if
+		/* Everything that comes in here is of type ExpressionStatement, so I've got no idea if
 		 * its even possible to get original statement types back for better parsing...
 		 */
 		List<Statement> statementList = inputMethod.getBody().statements();
 		
-		
-		for(Statement line : statementList)		/*Each statement is automatically appended with /n so no need to println*/
+		/* For every statement in the method body*/
+		for(Statement line : statementList)	
 		{
-			//System.out.println(line.
 			System.out.print("nodeType " + line.getNodeType() +"; ");
 			
 			/*If it finds an if statement*/
 			if(line.getNodeType() == 25)
 			{
 				System.out.println("Line num: " + unit.getLineNumber(line.getStartPosition()) + "; Code: if("+ ((IfStatement) line).getExpression()+")");
-				//Statement temp = ((IfStatement) line).getThenStatement();
 				
-				/*Lots of lovely casting, only way we can access what we want to. If the nodetype is of an if
-				 * then we cast to ifstatement object, get the then statement(body) and get the statements within
-				 * and parse them individually
+				/*Lots of casts, it's only way we can access what we want to. If the NodeType is of an if
+				 * then we cast to IfStatement object, get the then statement(body)and else body, and get 
+				 * the statements within and parse them individually
 				 */
 				List<Statement> thenStatement = new ArrayList<Statement>();
+				List<Statement> elseStatement = new ArrayList<Statement>();
 				
-				/*This is to deal with when the block is a collection of statements*/
+				/*This is to deal with when the then block is a collection of statements*/
 				try
 				{
 					thenStatement = ((Block) ((IfStatement) line).getThenStatement()).statements();
@@ -116,7 +109,46 @@ public class ControlFlowGenerator
 				for (Statement individualStatements: thenStatement)
 				{
 					System.out.print("nodeType " + individualStatements.getNodeType() + ";");
-					System.out.print("Line num: " + unit.getLineNumber(individualStatements.getStartPosition()) + "Code : " +individualStatements.toString());
+					System.out.print("Line num: " + unit.getLineNumber(individualStatements.getStartPosition()) + "(IN THEN) Code : " +individualStatements.toString());
+				}
+				
+				try
+				{
+					elseStatement = ((Block) ((IfStatement) line).getElseStatement()).statements();
+				}
+				/*Exception thrown for ClassCast when there's a single statement that we're trying to cast into a block*/
+				catch(ClassCastException e)
+				{
+					Statement singleStatement = ((IfStatement) line).getElseStatement();
+					elseStatement.add(singleStatement);
+				}
+				catch(NullPointerException e)
+				{
+					/*No else statement*/
+				}
+					
+					
+				for (Statement individualStatements: elseStatement)
+				{
+					System.out.print("nodeType " + individualStatements.getNodeType() + ";");
+					System.out.print("Line num: " + unit.getLineNumber(individualStatements.getStartPosition()) + "(IN ELSE) Code : " +individualStatements.toString());
+				}
+				
+				//elseStatement = ((Block) ((IfStatement) line).getElseStatement()).getStructuralProperty(property)
+
+				//System.out.println(elseStatement = ((Block) ((IfStatement) line).getElseStatement()).structuralPropertiesForType());
+			}
+			/*If a for statement*/
+			else if(line.getNodeType() == 24)
+			{
+				System.out.println("Line num: " + unit.getLineNumber(line.getStartPosition()) + "; Code: for("+ ((ForStatement) line).getExpression()+")");
+				
+				List<Statement> forContents = ((Block) ((ForStatement) line).getBody()).statements();
+				
+				for (Statement individualStatements: forContents)
+				{
+					System.out.print("nodeType " + individualStatements.getNodeType() + ";");
+					System.out.print("Line num: " + unit.getLineNumber(individualStatements.getStartPosition()) + "(IN LOOP) Code : " +individualStatements.toString());
 				}
 			}
 			else
@@ -170,16 +202,16 @@ public class ControlFlowGenerator
 					 * working deep enough for that to matter in terms of our graphs
 					 */
 					
-					System.out.println(Calendar.getInstance().getTimeInMillis());
+					long t1 = Calendar.getInstance().getTimeInMillis();
 					for (BodyDeclaration body : bodies)
 					{
 						/*If its a method declaration*/
 						if (body.getNodeType() == ASTNode.METHOD_DECLARATION)
 						{
 							MethodDeclaration method = (MethodDeclaration) body;
-							printMethodBody(method);
+							printMethodContents(method);
 							
-//							Checks name and finds the main method
+							/*Checks name and finds the main method TODO uncomment this out*/
 //							if(method.getName().getFullyQualifiedName().toLowerCase().equals("main"))
 //							{
 //								mainMethodBody = method.getBody();
@@ -190,7 +222,7 @@ public class ControlFlowGenerator
 						 * can identify things later on like globals dec, inner classes
 						 */
 					}
-					System.out.println(Calendar.getInstance().getTimeInMillis());
+					System.out.println("Run time " + (Calendar.getInstance().getTimeInMillis()-t1) + "ms");
 					return true;
 				}
 			}

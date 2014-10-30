@@ -12,6 +12,17 @@ public class TestClass
 		cd="Craig";
 		
 		verify();
+		
+		for(int i=0; i < 10; i++)
+		{
+			System.out.println(i);
+		}
+		
+		for(int i=0;i <10;i++)
+		{
+			System.out.println(i);
+			System.out.println(i+1);
+		}
 	}
 	
 	private void verify()
@@ -21,11 +32,16 @@ public class TestClass
 			System.out.println("woops");
 			System.out.println("2");
 			System.out.println("3");
-
+		}
+		else
+		{
+			System.out.println("fail");
 		}
 		
 		if(false)
 			System.out.println("another test");
+		else
+			System.out.println("test3");
 	}
 	
 	public static void main(String[] args)
