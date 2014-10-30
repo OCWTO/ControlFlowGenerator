@@ -6,14 +6,16 @@ import java.io.IOException;
 
 public class Main
 {
-	/*Program just locates main method and prints it's body currently*/
+	/*Program needs a GUI, ControlFlow generator needs the src file directory and the class
+	 * it will attempt to generate the graph from.
+	 */
 	public static void main(String[] args) throws Exception
 	{
-		File projectFile = new File(System.getProperty("user.dir") + "\\testfiles\\TestClass.java");		//Windows file
+		File runnerFile = new File(System.getProperty("user.dir") + "\\testfiles\\TestClass.java");		//Windows file
 		//File projectFile = new File(System.getProperty("user.dir") + "/testfiles/TestClass.java");		//Linux file
-		//System.out.println(projectFile.getAbsolutePath());
-		//System.out.println(projectFile.exists());
-
-		ControlFlowGenerator generator = new ControlFlowGenerator(projectFile);
+		
+		File projectFolder = new File(System.getProperty("user.dir"));
+		
+		ControlFlowGenerator2 generator = new ControlFlowGenerator2(projectFolder, runnerFile);
 	}
 }
