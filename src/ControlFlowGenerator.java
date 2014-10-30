@@ -34,6 +34,8 @@ import com.ibm.icu.util.Calendar;
  */
 public class ControlFlowGenerator
 {
+	CompilationUnit unit;
+	
 	/*TODO make it work across multiple files*/
 	private File inputFile;
 	
@@ -76,27 +78,22 @@ public class ControlFlowGenerator
 			System.out.println("Constructor " + inputMethod.getName().getFullyQualifiedName() + "{");
 		}
 		
+		/*Everything that comes in here is of type ExpressionStatement, so I've got no idea if
+		 * its even possible to get original statement types back for better parsing...
+		 */
 		List<Statement> statementList = inputMethod.getBody().statements();
 		
-		//List<? extends Statement> abc = inputMethod.getBody().statements().
-		
-		
-//		for(int i = 0; i < abc.size(); i++)
-//		{
-//			System.out.println(abc.get(i).getNodeType());
-//			//System.out.println( (((ASTNode) inputMethod.getBody().statements().get(i)).getNodeType()));
-//		}
 		
 		for(Statement line : statementList)		/*Each statement is automatically appended with /n so no need to println*/
 		{
 			//System.out.println(line.
-			System.out.print(line.getNodeType() + ":");
+			System.out.print("nodeType " + line.getNodeType() +"; ");
 			
 			/*If it finds an if statement*/
 			if(line.getNodeType() == 25)
 			{
-				System.out.println("if("+ ((IfStatement) line).getExpression()+")");
-				Statement temp = ((IfStatement) line).getThenStatement();
+				System.out.println("Line num: " + unit.getLineNumber(line.getStartPosition()) + "; Code: if("+ ((IfStatement) line).getExpression()+")");
+				//Statement temp = ((IfStatement) line).getThenStatement();
 				
 				/*Lots of lovely casting, only way we can access what we want to. If the nodetype is of an if
 				 * then we cast to ifstatement object, get the then statement(body) and get the statements within
@@ -118,23 +115,13 @@ public class ControlFlowGenerator
 				
 				for (Statement individualStatements: thenStatement)
 				{
-					System.out.print(individualStatements.getNodeType() + ":");
-					if(individualStatements.toString().contains("TestClass"))
-					{
-						System.out.println("found");
-					}
-					System.out.print(individualStatements.toString());
+					System.out.print("nodeType " + individualStatements.getNodeType() + ";");
+					System.out.print("Line num: " + unit.getLineNumber(individualStatements.getStartPosition()) + "Code : " +individualStatements.toString());
 				}
 			}
 			else
 			{
-				if(line.toString().contains("TestClass("))
-				{
-					System.out.println(line.getNodeType());
-					System.out.println("found");
-				}
-				System.out.print(line.toString());
-				
+				System.out.print("Line Num: " + unit.getLineNumber(line.getStartPosition()) + "; Code: "+ line.toString());
 			}
 		}
 		System.out.println("}" + "\n");
@@ -155,7 +142,7 @@ public class ControlFlowGenerator
 			Document document = new Document(source);
 			ASTParser parser = ASTParser.newParser(AST.JLS8);
 			parser.setSource(document.get().toCharArray());
-			CompilationUnit unit = (CompilationUnit) parser.createAST(null);		/*Program sometimes stalls here for no known reason*/
+			unit = (CompilationUnit) parser.createAST(null);		/*Program sometimes stalls here for no known reason*/
 			unit.recordModifications();
 		
 			/*
