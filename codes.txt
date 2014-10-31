@@ -101,3 +101,27 @@ public static final int 	STRICTFP 	2048
 public static final int 	SYNCHRONIZED 	32
 public static final int 	TRANSIENT 	128
 public static final int 	VOLATILE 	64
+
+ Statement:
+    AssertStatement,
+    Block,
+    BreakStatement,
+    ConstructorInvocation,
+    ContinueStatement,
+    DoStatement,
+    EmptyStatement,
+    ExpressionStatement,
+    ForStatement,
+    IfStatement,
+    LabeledStatement,
+    ReturnStatement,
+    SuperConstructorInvocation,
+    SwitchCase,
+    SwitchStatement,
+    SynchronizedStatement,
+    ThrowStatement,
+    TryStatement,
+    TypeDeclarationStatement,
+    VariableDeclarationStatement,
+    WhileStatement
+ 

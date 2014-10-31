@@ -1,3 +1,7 @@
+import java.util.List;
+
+import org.eclipse.jdt.core.dom.Statement;
+
 
 public class TestClass
 {
@@ -27,6 +31,10 @@ public class TestClass
 	
 	private void verify()
 	{
+		int a[] = new int[10];
+		
+		int a[] = {1,2,3};
+				
 		if(ab.equals(cd))
 		{
 			System.out.println("woops");
@@ -42,6 +50,7 @@ public class TestClass
 			System.out.println("another test");
 		else
 			System.out.println("test3");
+		
 	}
 	
 	public static void main(String[] args)
@@ -63,6 +72,8 @@ public class TestClass
 	private void print4()
 	{
 		System.out.println("nothing");
+		
+		print3();
 	}
 
 	private void print3(String name)

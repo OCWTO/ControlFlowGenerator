@@ -15,7 +15,7 @@ public class Main
 		//File projectFile = new File(System.getProperty("user.dir") + "/testfiles/TestClass.java");		//Linux file
 		
 		File projectFolder = new File(System.getProperty("user.dir"));
-		
+
 		ControlFlowGenerator generator = new ControlFlowGenerator(projectFolder, runnerFile);
 	}
 

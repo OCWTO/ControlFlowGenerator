@@ -13,6 +13,7 @@ import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -219,6 +220,7 @@ public class ControlFlowGenerator
 		 * its even possible to get original statement types back for better parsing...
 		 */
 		List<Statement> statementList = inputMethod.getBody().statements();
+		System.out.println(statementList.size());
 		
 		/* For every statement in the method body*/
 		for(Statement line : statementList)	
@@ -251,6 +253,10 @@ public class ControlFlowGenerator
 				
 				for (Statement individualStatements: thenStatement)
 				{
+					//ExpressionStatement temp = (ExpressionStatement) individualStatements;
+					//System.out.println(temp.properties().values().toString());
+					
+					//System.out.println((ExpressionStatement) individualStatements.properties().values().toString());
 					System.out.print("nodeType " + individualStatements.getNodeType() + ";");
 					System.out.print("Line num: " + unit.getLineNumber(individualStatements.getStartPosition()) + "(IN THEN) Code : " +individualStatements.toString());
 				}
