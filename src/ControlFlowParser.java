@@ -15,7 +15,6 @@ import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -23,17 +22,23 @@ import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.eclipse.jface.text.Document;
 
-/*IDEAS for improvement/expansion
- * initially we could get the file class name and then create a mapping to it so we can detect the constructor
- * from a plain method
- * 
- * A current problem is that we're casting the block to a statement and lose all information about what type
- * of statement there is.
- * 
- * For some reason putting a comment or array init in the verify method stopped it parsing completely...
- * 
- * TODO: Look at resources incase things are changed and don't correctly work, for example if textualprintout then graphical
- */
+/*										ALGORITHM
+		1. Create entry and exit nodes; create edge (entry, B1); create edges (Bk, exit) for each basic block Bk
+		that contains an exit from the program.
+		
+		2. Traverse the list of basic blocks and add a CFG edge from each node Bi to each node Bj if and only
+		if Bj can immediately follow Bi
+		in some execution sequence, that is, if:
+			(a) there is a conditional or unconditional goto statement from the last statement of Bi to the first
+			statement of Bj , or
+			(b) Bj immediately follows Bi
+			in the order of the program, and Bi does not end in an unconditional
+			goto statement.
+		
+		3. Label edges that represent conditional transfers of control as “T” (true) or “F” (false); other edges are
+		unlabelled.
+*/
+
 public class ControlFlowParser
 {
 	/*JDT variables*/
@@ -44,9 +49,7 @@ public class ControlFlowParser
 
 	private File inputFile;
 	
-	//private MethodDeclaration mainMethod;
 	private List<File> projectFiles;
-	//private int stateNumber;
 	
 	private List<INode> controlFlowNodes= new ArrayList<INode>();
 	private List<IEdge> graphEdges = new ArrayList<IEdge>();
@@ -55,7 +58,6 @@ public class ControlFlowParser
 	private int currentNode;
 	private INode previous = null;
 	private INode recentNode = null;
-	private INode pNode = null;
 	
 	private final int ifType = 25;		//need to be fields
 	private final int whileType = 61;	//field
@@ -90,27 +92,20 @@ public class ControlFlowParser
 		//textualControlFlowPrintout(unit.types());
 	}
 
-	private void parseStatements(List<Statement> statementBlock,INode previousNode, boolean prevConditional)
+	private INode parseStatements(List<Statement> statementBlock,INode previousNode, boolean prevConditional)
 	{		
 		INode pNode = previousNode;
 		INode cNode = null;
 		
 		//this only gets called on conditionals so this is always true on first call
 		boolean conditional = prevConditional;
+		boolean condFalse = false;
 		boolean cd2 = false;
-		//once in here, if previous isnt null then previous is the statement that was true to allow this code to be read, so theres an
-		//edge from previous to nextnode in here
-		
-		//down here recentNode is the parent so theres a conditional edge true
-		
+		boolean skip = false;
+
 		/*While there's a block to parse*/
 		while(!statementBlock.isEmpty())
 		{
-			if(cd2==true)
-			{
-				conditional=true;
-			}
-			
 			Statement codeLine = statementBlock.remove(0);
 			currentNode++;
 			switch(codeLine.getNodeType())
@@ -122,62 +117,87 @@ public class ControlFlowParser
 					WhileStatement whileLine = (WhileStatement) codeLine;
 					cNode =  new ConditionalNode("BasicBlock " + currentNode, "while " + whileLine.getExpression());
 					controlFlowNodes.add(cNode);
-					parseStatements(((Block )whileLine.getBody()).statements(), cNode, true);
+					INode temp = parseStatements(((Block )whileLine.getBody()).statements(), cNode, true);
+					
+					graphEdges.add(new Edge(temp,cNode));
+					System.out.println("hit it" + "condition " + conditional + " cd2 " + cd2 + "cNode " + cNode.getName() + "pNode " + pNode.getName());
 					conditional = false;
 					cd2 =true;
-					//we get a statement or a list of statements(block) so we want to pass list of statements into new methdo
+					skip = true;
+					condFalse = true;
+					
+					
 				break;
 				default: 
 					cNode = new Node("BasicBlock " + currentNode, codeLine.toString());
 					controlFlowNodes.add(new Node("BasicBlock " + currentNode, codeLine.toString()));
 				break;	
 			}
-			if(conditional == true)
+			
+			if(!condFalse)
 			{
-				graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
-				conditional = false;
-			}
-			else if(cd2==true && conditional==false)
-			{
-				graphEdges.add(new ConditionalEdge(pNode, cNode, "false"));
-				cd2=false;
+				if(conditional == true)
+				{
+					System.out.println("access1");
+					graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
+					conditional = false;
+				}
+				else if(cd2==true && conditional==false)
+				{
+					System.out.println("acess2");
+					graphEdges.add(new ConditionalEdge(pNode, cNode, "false"));
+					cd2=false;
+					conditional =false;
+				}
+				else
+				{
+					System.out.println("access3");
+					graphEdges.add(new Edge(pNode,cNode));
+				}
 			}
 			else
 			{
 				graphEdges.add(new Edge(pNode,cNode));
 			}
+			condFalse = false;
 			pNode = cNode;	
 		}
-		return;
+		return pNode;
 	}
-	/*
-1. Create entry and exit nodes; create edge (entry, B1); create edges (Bk, exit) for each basic block Bk
-that contains an exit from the program.
 
-2. Traverse the list of basic blocks and add a CFG edge from each node Bi to each node Bj if and only
-if Bj can immediately follow Bi
-in some execution sequence, that is, if:
-(a) there is a conditional or unconditional goto statement from the last statement of Bi to the first
-statement of Bj , or
-(b) Bj immediately follows Bi
-in the order of the program, and Bi does not end in an unconditional
-goto statement.
-
-3. Label edges that represent conditional transfers of control as “T” (true) or “F” (false); other edges are
-unlabeled.
-*/
 	
+	/**
+	 * This method deals with the top level parsing of methods, it loops through the statements in
+	 * the method and generates Nodes and Edges depending on its relationship to other statements
+	 * in the graph and the type of the current, preceding and following statements
+	 * @param method - The Method that is to be parsed
+	 */
 	public void printoutClassTextual(MethodDeclaration method)
 	{
+		/*Create initial entry and exit nodes, as algorithm says*/
 		INode entryNode = new Node("EntryNode1",method.getName().getFullyQualifiedName() + "{");
 		INode exitNode = new Node("ExitNode1","main");
+		
+		/*Add first and final nodes to our collection*/
 		controlFlowNodes.add(entryNode);
 		controlFlowNodes.add(exitNode);
+		
+		/*Get the statements in our method*/
 		List<Statement> contents = method.getBody().statements();
+		
+		/*prevConditionalStatement is used so if the preceding
+		 * statement was condition then that means that the next
+		 * edge added must be conditional. This method with 2 booleans
+		 * is the only one we've found so far to correctly create
+		 * the edges
+		 */
 		boolean prevConditionalStatement = false;
 		boolean conditionalEdge = false;
+		
+		/*PreviousNode is our initial node*/
 		previous = entryNode;
-		/*While we have code to parse*/
+		
+		/*Starts parsing the class*/
 		while(!contents.isEmpty())
 		{
 			Statement codeLine = contents.remove(0);
@@ -188,26 +208,42 @@ unlabeled.
 			switch(codeLine.getNodeType())
 			{
 				case ifType: 
-					
+					//Nothing here yet
 				break;
+				
 				case whileType:
 					WhileStatement whileLine = (WhileStatement) codeLine;
 					recentNode = new ConditionalNode("BasicBlock " + currentNode, "while " + whileLine.getExpression());
 					controlFlowNodes.add(recentNode);
+					
+					/*Value is set to true here so next statement thats parsed will have a conditional edge to the current one*/
 					prevConditionalStatement = true;
-					pNode = recentNode;
-					parseStatements(((Block )whileLine.getBody()).statements(), pNode, true);
+					
+					/*Call the parseStatements method on the inner body of the wile, pass in the current node (which will
+					 * be treated as previous so edges can be created correctly and true (the statements about to be parsed
+					 * are under a conditional
+					 */
+					INode temp = parseStatements(((Block )whileLine.getBody()).statements(), recentNode, true);
+					
+					/*Temp is the last block inside the conditional, which means after its execution control flow comes back
+					 * to the while statement to see if it should execute its body again
+					 */
+					graphEdges.add(new Edge(temp, recentNode));
 				break;
+				
+				/*Non conditional statements fall under default for now*/
 				default: 
 					recentNode = new Node("BasicBlock " + currentNode, codeLine.toString());
 					controlFlowNodes.add(new Node("BasicBlock " + currentNode, codeLine.toString()));
 				break;	
 			}
 
+			/*If no conditional edge to be added*/
 			if(conditionalEdge == false)
 			{
 				graphEdges.add(new Edge(previous, recentNode));
 			}
+			/*If there is then its a false edge, since the true case is dealt with by parseStatements()*/
 			else
 			{
 				graphEdges.add(new ConditionalEdge(previous, recentNode, "false"));
@@ -231,73 +267,10 @@ unlabeled.
 		{
 			System.out.println("FROM " + cfEdge.getFrom().getName() + " TO:" + cfEdge.getTo().getName()+ " COND:" + cfEdge.getCondition());
 		}
-		
-		
 		//printMethodContents(method);
-		
-		
-		
-		
-		
-		
-//		List<AbstractTypeDeclaration> fileContent = unit.types();
-//		
-//		/* So for everything in the file */
-//		for (AbstractTypeDeclaration type : fileContent)
-//		{
-//			/* If its a class declaration, could be enum? */
-//			//Issues could come here if its not a class
-//			if (type.getNodeType() == ASTNode.TYPE_DECLARATION)
-//			{
-//				/* For every declaration e.g methods, global variables (everything between
-//				 * the brackets in class def.*/
-//				List<BodyDeclaration> bodies = type.bodyDeclarations();
-//					
-//				/*Need to look into this at :http://help.eclipse.org/indigo/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fdom%2FBodyDeclaration.html
-//				 * since we aren't looking at fields, not as if it matters since I doubt we can get this
-//				 * working deep enough for that to matter in terms of our graphs
-//				 */
-//				for (BodyDeclaration body : bodies)
-//				{
-//					/*If its a method declaration*/
-//					if (body.getNodeType() == ASTNode.METHOD_DECLARATION)
-//					{
-//						MethodDeclaration method = (MethodDeclaration) body;
-//						printMethodContents(method);
-//						
-//						/*Checks name and finds the main method TODO uncomment this out*/
-////						if(method.getName().getFullyQualifiedName().toLowerCase().equals("main"))
-////						{
-////							mainMethodBody = method.getBody();
-////							return true;
-////						}
-//					}
-//					/*TODO: figure out what the other node types correspond to so we
-//					 * can identify things later on like globals dec, inner classes
-//					 */
-//				}
-//			}
-//		}
 	}
-	
-	//ok now once everything is setup we want to parse
-	//so we want options for textual printout of srcFile
-	//textual controlflow of everything
-	//graphical controlflow of everything
-	
-		//
-		//from here we want to gather all java files in the dir and check inputfile has main
-		//firstly lets figure out if there's a main to not waste time
 		
 		
-//		if(!inputFile.getName().contains(".java"))		//front end will cover this case
-//			throw new Exception("The input file must be a '.java' file");
-		
-		/* For now we will assume that we call this via a file selector, later
-		 * on we could apply a .java filter to it too.
-		 */
-		
-		//this.inputFile = inputFile;
 	
 	/*This method takes in a MethodDeclaration object (see AST layout) and prints each line within in the form of
 	 * nodetype:code
