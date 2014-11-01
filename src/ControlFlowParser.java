@@ -126,46 +126,43 @@ goto statement.
 unlabeled.
 */
 	
-	// TODO TODO TODO TODO  Stuart: if you see this, im currently working on figuring out 
-	//how we will add edges when our program will get recursively deeper.
-	
 	public void printoutClassTextual(MethodDeclaration method)
 	{
-//		ControlFlowNodes.add(new Node("EntryNode1",method.getName().getFullyQualifiedName() + "{"));
-//		
-//		List<Statement> contents = method.getBody().statements();
-//		
-//		
-//		/*While we have code to parse*/
-//		while(!contents.isEmpty())
-//		{
-//			Statement codeLine = contents.remove(0);
-//			
-//			switch(codeLine.getNodeType())
-//			{
-//				case ifType: 
-//					
-//				break;
-//				case whileType:
-//					WhileStatement whileLine = (WhileStatement) codeLine;
-//					ControlFlowNodes.add(new Node("BasicBlock " + currentNode, "while " + whileLine.getExpression()));
-//					parseStatements(((Block )whileLine.getBody()).statements());
-//				break;
-//				default: 
-//					//here simply add edge to the thing before it
-//					ControlFlowNodes.add(new Node("BasicBlock " + currentNode, codeLine.toString()));
-//				break;	
-//			}
-//			currentNode++;
-//		}
-//		
-//		ControlFlowNodes.add(new Node("ExitNode1","main"));
-//		//GraphEdges.add(new Edge(ControlFlowNodes.get(ControlFlowNodes.size()-1), ControlFlowNodes.get(ControlFlowNodes.size()-2))));
-//		
-//		for(Node cfNode: ControlFlowNodes)
-//		{
-//			System.out.println(cfNode.getName() + ":" + cfNode.getCode());
-//		}
+		ControlFlowNodes.add(new Node("EntryNode1",method.getName().getFullyQualifiedName() + "{"));
+		
+		List<Statement> contents = method.getBody().statements();
+		
+		
+		/*While we have code to parse*/
+		while(!contents.isEmpty())
+		{
+			Statement codeLine = contents.remove(0);
+			
+			switch(codeLine.getNodeType())
+			{
+				case ifType: 
+					
+				break;
+				case whileType:
+					WhileStatement whileLine = (WhileStatement) codeLine;
+					ControlFlowNodes.add(new Node("BasicBlock " + currentNode, "while " + whileLine.getExpression()));
+					parseStatements(((Block )whileLine.getBody()).statements());
+				break;
+				default: 
+					//here simply add edge to the thing before it
+					ControlFlowNodes.add(new Node("BasicBlock " + currentNode, codeLine.toString()));
+				break;	
+			}
+			currentNode++;
+		}
+		
+		ControlFlowNodes.add(new Node("ExitNode1","main"));
+		//GraphEdges.add(new Edge(ControlFlowNodes.get(ControlFlowNodes.size()-1), ControlFlowNodes.get(ControlFlowNodes.size()-2))));
+		
+		for(Node cfNode: ControlFlowNodes)
+		{
+			System.out.println(cfNode.getName() + ":" + cfNode.getCode());
+		}
 		printMethodContents(method);
 		
 		
