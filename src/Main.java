@@ -11,12 +11,12 @@ public class Main
 	 */
 	public static void main(String[] args) throws Exception
 	{
-		File runnerFile = new File(System.getProperty("user.dir") + "\\testfiles\\TestClass.java");		//Windows file
+		File runnerFile = new File(System.getProperty("user.dir") + "\\testfiles\\BasicTest.java");		//Windows file
 		//File projectFile = new File(System.getProperty("user.dir") + "/testfiles/TestClass.java");		//Linux file
 		
 		File projectFolder = new File(System.getProperty("user.dir"));
 
-		ControlFlowGenerator generator = new ControlFlowGenerator(projectFolder, runnerFile);
+		ControlFlowParser generator = new ControlFlowParser(projectFolder, runnerFile);
 		
 		
 		
