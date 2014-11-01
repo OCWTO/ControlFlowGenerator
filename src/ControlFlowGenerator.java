@@ -300,6 +300,16 @@ public class ControlFlowGenerator
 					System.out.print("Line num: " + unit.getLineNumber(individualStatements.getStartPosition()) + "(IN LOOP) Code : " +individualStatements.toString());
 				}
 			}
+			/*If its a Do while*/
+			else if(line.getNodeType() == 19)
+			{
+				
+			}
+			/*If its a try*/
+			else if(line.getNodeType() == 54)
+			{
+				
+			}
 			else
 			{
 				System.out.print("Line Num: " + unit.getLineNumber(line.getStartPosition()) + "; Code: "+ line.toString());

@@ -27,6 +27,31 @@ public class TestClass
 			System.out.println(i);
 			System.out.println(i+1);
 		}
+		int max;
+		max = (a > b) ? a : b;
+		
+		do
+		{
+			System.out.println(a);
+		}
+		while(a > 0);
+		
+		a=7;
+		b=a;
+		
+		try
+		{
+			System.out.println("a");
+			
+		}
+		catch(Exception e)
+		{
+			System.out.println("caught");
+		}
+		finally
+		{
+			System.out.println("d");
+		}
 	}
 	
 	private void verify()
@@ -50,6 +75,19 @@ public class TestClass
 			System.out.println("another test");
 		else
 			System.out.println("test3");
+		
+		if(ab == ab)
+		{
+			System.out.println("ab");
+		}
+		else if(ab != ab)
+		{
+			System.out.println("another");
+		}
+		else if(ab == ab)
+		{
+			System.out.println("finally");
+		}
 		
 	}
 	
