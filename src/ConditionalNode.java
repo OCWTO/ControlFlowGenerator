@@ -1,13 +1,10 @@
-import java.awt.event.ActionListener;
-import java.util.List;
 
-
-public class Node implements INode
+public class ConditionalNode implements INode
 {
 	String name;
 	String code;
 	
-	public Node(String name, String code)
+	public ConditionalNode(String name, String code)
 	{
 		this.name = name;
 		this.code = code;

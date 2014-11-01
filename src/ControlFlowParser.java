@@ -1,6 +1,8 @@
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -46,10 +48,14 @@ public class ControlFlowParser
 	private List<File> projectFiles;
 	//private int stateNumber;
 	
-	private List<Node> ControlFlowNodes= new ArrayList<Node>();
-	private List<Edge> GraphEdges = new ArrayList<Edge>();
+	private List<INode> controlFlowNodes= new ArrayList<INode>();
+	private List<IEdge> graphEdges = new ArrayList<IEdge>();
+	private Deque<INode> nodeStack = new ArrayDeque<INode>();
 	
 	private int currentNode;
+	private INode previous = null;
+	private INode recentNode = null;
+	private INode pNode = null;
 	
 	private final int ifType = 25;		//need to be fields
 	private final int whileType = 61;	//field
@@ -84,11 +90,27 @@ public class ControlFlowParser
 		//textualControlFlowPrintout(unit.types());
 	}
 
-	private void parseStatements(List<Statement> statementBlock)
+	private void parseStatements(List<Statement> statementBlock,INode previousNode, boolean prevConditional)
 	{		
+		INode pNode = previousNode;
+		INode cNode = null;
+		
+		//this only gets called on conditionals so this is always true on first call
+		boolean conditional = prevConditional;
+		boolean cd2 = false;
+		//once in here, if previous isnt null then previous is the statement that was true to allow this code to be read, so theres an
+		//edge from previous to nextnode in here
+		
+		//down here recentNode is the parent so theres a conditional edge true
+		
 		/*While there's a block to parse*/
 		while(!statementBlock.isEmpty())
 		{
+			if(cd2==true)
+			{
+				conditional=true;
+			}
+			
 			Statement codeLine = statementBlock.remove(0);
 			currentNode++;
 			switch(codeLine.getNodeType())
@@ -98,14 +120,33 @@ public class ControlFlowParser
 				break;
 				case whileType:
 					WhileStatement whileLine = (WhileStatement) codeLine;
-					ControlFlowNodes.add(new Node("BasicBlock " + currentNode, "while " + whileLine.getExpression()));
-					parseStatements(((Block )whileLine.getBody()).statements());
+					cNode =  new ConditionalNode("BasicBlock " + currentNode, "while " + whileLine.getExpression());
+					controlFlowNodes.add(cNode);
+					parseStatements(((Block )whileLine.getBody()).statements(), cNode, true);
+					conditional = false;
+					cd2 =true;
 					//we get a statement or a list of statements(block) so we want to pass list of statements into new methdo
 				break;
 				default: 
-					ControlFlowNodes.add(new Node("BasicBlock " + currentNode, codeLine.toString()));
+					cNode = new Node("BasicBlock " + currentNode, codeLine.toString());
+					controlFlowNodes.add(new Node("BasicBlock " + currentNode, codeLine.toString()));
 				break;	
 			}
+			if(conditional == true)
+			{
+				graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
+				conditional = false;
+			}
+			else if(cd2==true && conditional==false)
+			{
+				graphEdges.add(new ConditionalEdge(pNode, cNode, "false"));
+				cd2=false;
+			}
+			else
+			{
+				graphEdges.add(new Edge(pNode,cNode));
+			}
+			pNode = cNode;	
 		}
 		return;
 	}
@@ -128,15 +169,21 @@ unlabeled.
 	
 	public void printoutClassTextual(MethodDeclaration method)
 	{
-		ControlFlowNodes.add(new Node("EntryNode1",method.getName().getFullyQualifiedName() + "{"));
-		
+		INode entryNode = new Node("EntryNode1",method.getName().getFullyQualifiedName() + "{");
+		INode exitNode = new Node("ExitNode1","main");
+		controlFlowNodes.add(entryNode);
+		controlFlowNodes.add(exitNode);
 		List<Statement> contents = method.getBody().statements();
-		
-		
+		boolean prevConditionalStatement = false;
+		boolean conditionalEdge = false;
+		previous = entryNode;
 		/*While we have code to parse*/
 		while(!contents.isEmpty())
 		{
 			Statement codeLine = contents.remove(0);
+			
+			if(prevConditionalStatement == true)
+				conditionalEdge = true;
 			
 			switch(codeLine.getNodeType())
 			{
@@ -145,25 +192,48 @@ unlabeled.
 				break;
 				case whileType:
 					WhileStatement whileLine = (WhileStatement) codeLine;
-					ControlFlowNodes.add(new Node("BasicBlock " + currentNode, "while " + whileLine.getExpression()));
-					parseStatements(((Block )whileLine.getBody()).statements());
+					recentNode = new ConditionalNode("BasicBlock " + currentNode, "while " + whileLine.getExpression());
+					controlFlowNodes.add(recentNode);
+					prevConditionalStatement = true;
+					pNode = recentNode;
+					parseStatements(((Block )whileLine.getBody()).statements(), pNode, true);
 				break;
 				default: 
-					//here simply add edge to the thing before it
-					ControlFlowNodes.add(new Node("BasicBlock " + currentNode, codeLine.toString()));
+					recentNode = new Node("BasicBlock " + currentNode, codeLine.toString());
+					controlFlowNodes.add(new Node("BasicBlock " + currentNode, codeLine.toString()));
 				break;	
 			}
+
+			if(conditionalEdge == false)
+			{
+				graphEdges.add(new Edge(previous, recentNode));
+			}
+			else
+			{
+				graphEdges.add(new ConditionalEdge(previous, recentNode, "false"));
+				prevConditionalStatement = false;
+			}
+			
+			previous = recentNode;	
 			currentNode++;
 		}
+		//Issue here could be if it ends with a conditional so while(...) return
+		graphEdges.add(new Edge(previous, exitNode));
 		
-		ControlFlowNodes.add(new Node("ExitNode1","main"));
-		//GraphEdges.add(new Edge(ControlFlowNodes.get(ControlFlowNodes.size()-1), ControlFlowNodes.get(ControlFlowNodes.size()-2))));
-		
-		for(Node cfNode: ControlFlowNodes)
+		System.out.println("NODES");
+		for(INode cfNode: controlFlowNodes)
 		{
 			System.out.println(cfNode.getName() + ":" + cfNode.getCode());
 		}
-		printMethodContents(method);
+		
+		System.out.println("EDGES");
+		for(IEdge cfEdge: graphEdges)
+		{
+			System.out.println("FROM " + cfEdge.getFrom().getName() + " TO:" + cfEdge.getTo().getName()+ " COND:" + cfEdge.getCondition());
+		}
+		
+		
+		//printMethodContents(method);
 		
 		
 		

@@ -1,11 +1,11 @@
 
-public class Edge implements IEdge
+public class ConditionalEdge implements IEdge
 {
 	private INode from;
 	private INode to;
 	private String condition;
 	
-	public Edge(INode from, INode to)
+	public ConditionalEdge(INode from, INode to,  String condition)
 	{
 		this.from = from;
 		this.to = to;
@@ -14,7 +14,7 @@ public class Edge implements IEdge
 	
 	public String getCondition()
 	{
-		return "";
+		return condition;
 	}
 	
 	public INode getFrom()
