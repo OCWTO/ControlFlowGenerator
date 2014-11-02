@@ -171,18 +171,19 @@ public class ControlFlowParser
 					cNode =  new ConditionalNode("BasicBlock " + currentNode, "while " + whileLine.getExpression());
 					controlFlowNodes.add(cNode);
 					
-					if(pNode.getName().contains("while"))
+					if(pNode.getCode().contains("while"))
 					{
 						System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName() + "T");
 						graphEdges.add(new ConditionalEdge(pNode, cNode,"true"));
 					}
-					else if(pNode.getName().contains("while") && cNode.getName().contains("while"))
+					else if(pNode.getCode().contains("while") && cNode.getCode().contains("while"))
 					{
 						graphEdges.add(new ConditionalEdge(cNode,pNode,"false"));
 					}
 					else
 					{
-						System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName());
+						//System.out.println(pNode.getCode + " contains while? " + pNode.get);
+						System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName() + " V2");
 						graphEdges.add(new Edge(pNode, cNode));
 					}
 //					System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName() + "T");
@@ -329,9 +330,15 @@ public class ControlFlowParser
 					System.out.println("between " + temp.getName() + " " + recentNode.getName());
 					
 					if(temp.getName().contains("while"))
+					{
+						System.out.println("MAKING2 " + temp.getName() + " " + recentNode.getName() + "FALSE");
 						graphEdges.add(new ConditionalEdge(temp, recentNode, "false"));
+					}
 					else
+					{
+						System.out.println("MAKING33 " + temp.getName() + " " + recentNode.getName());
 						graphEdges.add(new Edge(temp,recentNode));
+					}
 				break;
 				
 				/*Non conditional statements fall under default for now*/
