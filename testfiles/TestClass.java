@@ -93,22 +93,44 @@ public class TestClass
 	
 	public static void main(String[] args)
 	{
-		TestClass test;
-		test = new TestClass(9);
+		TestClass test;								//1
+		test = new TestClass(9);					//2
 		
-		test.print1();
-		test.print2();
-		test.print3("Bob");
-		test.print4();
+		test.print1();								//3
+		test.print2();								//4
+		test.print3("Bob");							//5
+		test.print4();								//6
 		
-		if(false)
+		if(a.equals(b))								//7
 		{
-			System.out.println("done");
+			System.out.println("done");				//8
+			while(a.equals("true"))					//9
+			{
+				System.out.println("true");			//10
+			}
 		}
+		
 	}
 
 	private void print4()
 	{
+		else if(b.equals("aa"))
+		{
+			System.out.println("done2");
+		}
+		else if(c.equals("aac"))
+		{
+			System.out.println("a");
+		}
+		else if(d.equals("bobski"))
+		{
+			System.out.println("b");
+		}
+		else
+		{
+			System.out.println("TT");
+		}
+		
 		System.out.println("nothing");
 		
 		print3();
