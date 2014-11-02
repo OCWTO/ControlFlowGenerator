@@ -92,11 +92,11 @@ public class ControlFlowParser
 		
 		//initialnode = last
 		
-		for(Statement st: tmp)
-		{
-			//cfg(st)
+		//for(Statement st: tmp)
+		//{
+		//	INode lastNode = cfg(st,false);
 			//last = val of cfg(st)
-		}
+		//}
 		
 		//printMethodContents(mainMethod);
 		//System.out.println("......................");
@@ -104,8 +104,25 @@ public class ControlFlowParser
 	}
 	
 	
-	private INode cfg(Statement state)
+	private INode cfg(Statement state, boolean previousConditional)
 	{
+		//given a statement
+		//figure out what type it is
+		//if non loop then return itself
+		//otherwise recure
+		
+		int statementType = state.getNodeType();
+		
+		switch(statementType)
+		{
+			case ifType:
+				break;
+			case whileType:
+				break;
+			default:
+				break;
+		}
+		
 		return null;
 	}
 	
@@ -122,11 +139,19 @@ public class ControlFlowParser
 
 	private INode parseStatements(List<Statement> statementBlock,INode previousNode, boolean prevConditional)
 	{		
+		
+		//Example im down here with block, previous is 4, conditional = true
+		
+		
 		INode pNode = previousNode;
 		INode cNode = null;
 		
 		//this only gets called on conditionals so this is always true on first call
+		
+		//So this tells us we are down here on a conditional statement
 		boolean conditional = prevConditional;
+		
+		
 		boolean condFalse = false;
 		boolean cd2 = false;
 		boolean skip = false;
@@ -145,18 +170,47 @@ public class ControlFlowParser
 					WhileStatement whileLine = (WhileStatement) codeLine;
 					cNode =  new ConditionalNode("BasicBlock " + currentNode, "while " + whileLine.getExpression());
 					controlFlowNodes.add(cNode);
+					
+					if(pNode.getName().contains("while"))
+					{
+						System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName() + "T");
+						graphEdges.add(new ConditionalEdge(pNode, cNode,"true"));
+					}
+					else if(pNode.getName().contains("while") && cNode.getName().contains("while"))
+					{
+						graphEdges.add(new ConditionalEdge(cNode,pNode,"false"));
+					}
+					else
+					{
+						System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName());
+						graphEdges.add(new Edge(pNode, cNode));
+					}
+//					System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName() + "T");
+//					graphEdges.add(new ConditionalEdge(pNode, cNode,"true"));
+					//creating link between 4 and 5 on true condition
+					
 					INode temp = parseStatements(((Block )whileLine.getBody()).statements(), cNode, true);
+					
+					if(temp.getName().contains("while"))
+						graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
+					
+					System.out.println("new COND " + temp.getName() + " " + cNode.getName());
+					//link up this and the next statement down if the next down is 
+					
+					//INode temp = parseStatements(((Block )whileLine.getBody()).statements(), cNode, true);
 					
 					//graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
 					
 					if(temp.getCode().contains("while"))
 					{
-						//System.out.println("y");
+						System.out.println("y");
+						System.out.println("FUCKKKKKKKKKKKKK " + temp.getName() + " >> " + cNode.getName() + " FALSE");
 						graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
 					}
 					else
 					{
 						//System.out.println("n");
+						System.out.println("FK2 " + temp.getName() + " .. " + cNode.getName());
 						graphEdges.add(new Edge(temp,cNode));
 					}
 					
@@ -178,26 +232,28 @@ public class ControlFlowParser
 			{
 				if(conditional == true)
 				{
-					System.out.println("access1");
+					System.out.println("access1 MAKING " + pNode.getName() + " " + cNode.getName() + "true");
 					graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
 					conditional = false;
 				}
 				else if(cd2==true && conditional==false)
 				{
-					System.out.println("acess2");
+					System.out.println("acess2 MAKING " + pNode.getName() + "  " + cNode.getName() + "FALSE");
 					graphEdges.add(new ConditionalEdge(pNode, cNode, "false"));
 					cd2=false;
 					conditional =false;
 				}
 				else
 				{
-					System.out.println("access3");
+					System.out.println("access3 MAKING " + pNode.getName() + " " + cNode.getName() + "NOCOND");
+					//System.out.println("access3");
 					graphEdges.add(new Edge(pNode,cNode));
 				}
 			}
 			else
 			{
-				graphEdges.add(new Edge(pNode,cNode));
+				//System.out.println("RANDY MAKING " + pNode.getName() + " " + cNode.getName () + "true");
+				//graphEdges.add(new ConditionalEdge(pNode,cNode,"true"));
 			}
 			condFalse = false;
 			pNode = cNode;	
@@ -242,8 +298,9 @@ public class ControlFlowParser
 		{
 			Statement codeLine = contents.remove(0);
 			
+			//If the last statement parsed was a conditional
 			if(prevConditionalStatement == true)
-				conditionalEdge = true;
+				conditionalEdge = true;		//Then theres a conditionalEdge (false) to the next, since the true case is dealt with elsewhere
 			
 			switch(codeLine.getNodeType())
 			{
@@ -264,11 +321,17 @@ public class ControlFlowParser
 					 * are under a conditional
 					 */
 					INode temp = parseStatements(((Block )whileLine.getBody()).statements(), recentNode, true);
-					
+					System.out.println("returned");
 					/*Temp is the last block inside the conditional, which means after its execution control flow comes back
 					 * to the while statement to see if it should execute its body again
 					 */
-					graphEdges.add(new Edge(temp, recentNode));
+					System.out.println("d");
+					System.out.println("between " + temp.getName() + " " + recentNode.getName());
+					
+					if(temp.getName().contains("while"))
+						graphEdges.add(new ConditionalEdge(temp, recentNode, "false"));
+					else
+						graphEdges.add(new Edge(temp,recentNode));
 				break;
 				
 				/*Non conditional statements fall under default for now*/
@@ -311,6 +374,21 @@ public class ControlFlowParser
 	}
 		
 		
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	/*This method takes in a MethodDeclaration object (see AST layout) and prints each line within in the form of
 	 * nodetype:code
