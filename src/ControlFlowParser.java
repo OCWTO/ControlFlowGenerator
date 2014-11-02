@@ -329,7 +329,7 @@ public class ControlFlowParser
 					System.out.println("d");
 					System.out.println("between " + temp.getName() + " " + recentNode.getName());
 					
-					if(temp.getName().contains("while"))
+					if(temp.getCode().contains("while"))
 					{
 						System.out.println("MAKING2 " + temp.getName() + " " + recentNode.getName() + "FALSE");
 						graphEdges.add(new ConditionalEdge(temp, recentNode, "false"));
