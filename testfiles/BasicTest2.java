@@ -18,6 +18,7 @@ public class BasicTest
 					System.out.println("a");			//Block 11
 					System.out.println("b");			//Block 12
 				}
+				System.out.println("b");
 			}
 			System.out.println("sum " + sum +". i" + i);//Block 13
 			i = i + 1;									//Block 14

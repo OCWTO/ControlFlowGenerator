@@ -87,10 +87,38 @@ public class ControlFlowParser
 		collectJavaFiles(srcFolder);
 		
 		printoutClassTextual(mainMethod);
+		
+		List<Statement> tmp = mainMethod.getBody().statements();
+		
+		//initialnode = last
+		
+		for(Statement st: tmp)
+		{
+			//cfg(st)
+			//last = val of cfg(st)
+		}
+		
 		//printMethodContents(mainMethod);
 		//System.out.println("......................");
 		//textualControlFlowPrintout(unit.types());
 	}
+	
+	
+	private INode cfg(Statement state)
+	{
+		return null;
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
 	private INode parseStatements(List<Statement> statementBlock,INode previousNode, boolean prevConditional)
 	{		
@@ -119,7 +147,19 @@ public class ControlFlowParser
 					controlFlowNodes.add(cNode);
 					INode temp = parseStatements(((Block )whileLine.getBody()).statements(), cNode, true);
 					
-					graphEdges.add(new Edge(temp,cNode));
+					//graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
+					
+					if(temp.getCode().contains("while"))
+					{
+						//System.out.println("y");
+						graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
+					}
+					else
+					{
+						//System.out.println("n");
+						graphEdges.add(new Edge(temp,cNode));
+					}
+					
 					System.out.println("hit it" + "condition " + conditional + " cd2 " + cd2 + "cNode " + cNode.getName() + "pNode " + pNode.getName());
 					conditional = false;
 					cd2 =true;
