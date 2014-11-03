@@ -17,6 +17,7 @@ import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
+import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.WhileStatement;
@@ -122,7 +123,17 @@ public class ControlFlowParser
 			switch(codeLine.getNodeType())
 			{
 				case returnType:
+					ReturnStatement retunLine = (ReturnStatement) codeLine;
+					cNode = new ConditionalNode("BasicBlock " + currentNode, "return " + retunLine.getExpression());
+					controlFlowNodes.add(cNode);
+					
+					if(pNode.getCode().contains("retun"))
+					{
+						System.out.println("RETURN " + pNode.getName() + " " + cNode.getName() + "T");
+						graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
+					}
 				break;
+				
 				case switchType:
 				break;
 				case throwType:
@@ -283,6 +294,36 @@ public class ControlFlowParser
 			switch(codeLine.getNodeType())
 			{
 				case returnType:
+					System.out.println("return");
+					ReturnStatement returnLine = (ReturnStatement) codeLine;
+					recentNode = new ConditionalNode("BasicBlock " + currentNode, "return " + returnLine.getExpression());
+					controlFlowNodes.add(recentNode);
+					
+					prevConditionalStatement = true;
+					INode temp1 = null;
+					try
+					{
+						temp1 = parseStatements(((Block )returnLine.getParent()).statements(), recentNode, true);
+					}
+					catch(ClassCastException e)
+					{
+						List<Statement> parent = new ArrayList<Statement>();
+						ASTNode singleStatement = ((ReturnStatement) returnLine).getParent();
+						parent.add((Statement) singleStatement);
+						temp1 = parseStatements(parent, recentNode, true);
+					}
+					
+					if(temp1.getCode().contains("return"))
+					{
+						System.out.println("MAKING1 " + temp1.getName() + " " + recentNode.getName() + "FALSE");
+						graphEdges.add(new ConditionalEdge(temp1, recentNode, "false"));
+					}
+					else
+					{
+						System.out.println("MAKING33 " + temp1.getName() + " " + recentNode.getName());
+						graphEdges.add(new Edge(temp1,recentNode));
+					}
+					
 				break;
 				case switchType:
 				break;
