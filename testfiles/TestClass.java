@@ -93,6 +93,7 @@ public class TestClass
 	
 	public static void main(String[] args)
 	{
+		int a = 0;
 		TestClass test;								//1
 		test = new TestClass(9);					//2
 		
@@ -101,15 +102,31 @@ public class TestClass
 		test.print3("Bob");							//5
 		test.print4();								//6
 		
+		switch(a)
+		{
+			case 1: System.out.println("b");
+				break;
+			case 2: System.out.println("c");
+				break;
+			case 3: System.out.println("d");
+				break;
+			default: System.out.println("f");
+				break;
+		}
+		
+		
 		if(a.equals(b))								//7
 		{
+			
 			System.out.println("done");				//8
 			while(a.equals("true"))					//9
 			{
 				System.out.println("true");			//10
+				
 			}
+			throw new Exception();
 		}
-		
+		return null;
 	}
 
 	private void print4()

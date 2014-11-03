@@ -61,6 +61,9 @@ public class ControlFlowParser
 	
 	private final int ifType = 25;		//need to be fields
 	private final int whileType = 61;	//field
+	private final int returnType = 41;
+	private final int switchType = 50;
+	private final int throwType = 53;
 	/**
 	 * 
 	 * @param srcFolder The source folder of the project that contains
@@ -118,6 +121,12 @@ public class ControlFlowParser
 			currentNode++;
 			switch(codeLine.getNodeType())
 			{
+				case returnType:
+				break;
+				case switchType:
+				break;
+				case throwType:
+				break;
 				case ifType: 
 					IfStatement ifLine = (IfStatement) codeLine;
 					cNode = new ConditionalNode("BasicBlock " + currentNode, "if " + ifLine.getExpression());
@@ -273,6 +282,12 @@ public class ControlFlowParser
 			
 			switch(codeLine.getNodeType())
 			{
+				case returnType:
+				break;
+				case switchType:
+				break;
+				case throwType:
+				break;
 				case ifType: 
 					System.out.println("if");
 					IfStatement ifLine = (IfStatement) codeLine;
