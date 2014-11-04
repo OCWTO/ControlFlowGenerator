@@ -224,7 +224,11 @@ public class ControlFlowParser
 					
 					if(temp.getCode().contains("return") || temp.getCode().contains("throw"))
 					{
-						graphEdges.add(new ConditionalEdge(cNode, temp,"true"));
+						if(controlFlowNodes.get(controlFlowNodes.size()-2) == cNode)
+						{
+							System.out.println("making edge " + cNode.getName() + " " + temp.getName());
+							graphEdges.add(new ConditionalEdge(cNode, temp,"true"));
+						}
 						statementBlock.clear();
 						//break;
 					}
