@@ -56,6 +56,8 @@ public class ControlFlowParser
 	private List<INode> controlFlowNodes= new ArrayList<INode>();
 	private List<IEdge> graphEdges = new ArrayList<IEdge>();
 	private Deque<INode> nodeStack = new ArrayDeque<INode>();
+	private INode entryNode;
+	private INode exitNode;
 	
 	private int currentNode;
 	private INode previous = null;
@@ -66,6 +68,7 @@ public class ControlFlowParser
 	private final int returnType = 41;
 	private final int switchType = 50;
 	private final int throwType = 53;
+	private final int forType = 24;
 	/**
 	 * 
 	 * @param srcFolder The source folder of the project that contains
@@ -100,12 +103,9 @@ public class ControlFlowParser
 
 	private INode parseStatements(List<Statement> statementBlock,INode previousNode, boolean prevConditional)
 	{		
-		//Example im down here with block, previous is 4, conditional = true
-		
-		
 		INode pNode = previousNode;
 		INode cNode = null;
-		
+		INode temp = null;
 		//this only gets called on conditionals so this is always true on first call
 		
 		//So this tells us we are down here on a conditional statement
@@ -120,27 +120,67 @@ public class ControlFlowParser
 			currentNode++;
 			switch(codeLine.getNodeType())
 			{
+				case forType: System.out.println("for");
+				break;
+				
+				
+				
+				
 				case returnType:
-					ReturnStatement retunLine = (ReturnStatement) codeLine;
-					cNode = new ConditionalNode("BasicBlock " + currentNode, "return " + retunLine.getExpression());
+					ReturnStatement returnLine = (ReturnStatement) codeLine;
+					cNode = new Node("BasicBlock " + currentNode, "return " + returnLine.getExpression());
 					controlFlowNodes.add(cNode);
+					//graphEdges.ad
 					
-					if(pNode.getCode().contains("retun"))
+					if(pNode.getCode().contains("while"))
 					{
-						System.out.println("RETURN " + pNode.getName() + " " + cNode.getName() + "T");
-						graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
+						//System.out.println("ADDDING EDGIE FROM " + pNode.getName() + " " + cNode.getName() + "  TRUE");
+						//graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
 					}
+					else
+					{
+						graphEdges.add(new Edge(pNode, cNode));
+					}
+					
+					graphEdges.add(new Edge(cNode, exitNode));
+					
+					statementBlock.clear();
+					
+//					if(statementBlock.isEmpty())
+//						return cNode;
+					
+//					if(pNode.getCode().contains("return"))
+//					{
+//						System.out.println("RETURN " + pNode.getName() + " " + cNode.getName() + "T");
+//						graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
+//					}			??????
+
+
+//					graphEdges.add(new Edge(previous, recentNode));
+//					graphEdges.add(new Edge(recentNode, exitNode));
+//					//prevConditionalStatement = true;
+//					//INode temp1 = null;
+//					//return;
+//					
+//					contents.clear();
+//					
+//					if(contents.isEmpty())
+//					{
+//						printCollectionContents();
+//						return;
+//					}
+					
+					
 				break;
 				
 				case switchType:
 				break;
 				case throwType:
 					ThrowStatement throwLine = (ThrowStatement) codeLine;
-					cNode = new ConditionalNode("BasicBlock" + currentNode, "throw" + throwLine.getExpression());
+					cNode = new ConditionalNode("BasicBlock" + currentNode, "throw " + throwLine.getExpression());
 					controlFlowNodes.add(cNode);
 					if(pNode.getCode().contains("throw"))
 					{
-						System.out.println("THROW" + pNode.getName() + " " + cNode.getName() + "T");
 						graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
 					}
 				break;
@@ -154,7 +194,6 @@ public class ControlFlowParser
 						System.out.println("IF MAKING " + pNode.getName() + " " + cNode.getName() + "T");
 						graphEdges.add(new ConditionalEdge(pNode, cNode,"true"));
 					}
-					//////////////////////
 				break;
 				case whileType:
 					WhileStatement whileLine = (WhileStatement) codeLine;
@@ -181,29 +220,40 @@ public class ControlFlowParser
 //					graphEdges.add(new ConditionalEdge(pNode, cNode,"true"));
 					//creating link between 4 and 5 on true condition
 					
-					INode temp = parseStatements(((Block )whileLine.getBody()).statements(), cNode, true);
+					temp = parseStatements(((Block )whileLine.getBody()).statements(), cNode, true);
 					
-					if(temp.getName().contains("while"))
-						graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
-					
-					System.out.println("new COND " + temp.getName() + " " + cNode.getName());
-					//link up this and the next statement down if the next down is 
-					
-					//INode temp = parseStatements(((Block )whileLine.getBody()).statements(), cNode, true);
-					
-					//graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
-					
-					if(temp.getCode().contains("while"))
+					if(temp.getCode().contains("return") || temp.getCode().contains("throw"))
 					{
-						System.out.println("y");
-						System.out.println("FUCKKKKKKKKKKKKK " + temp.getName() + " >> " + cNode.getName() + " FALSE");
-						graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
+						graphEdges.add(new ConditionalEdge(cNode, temp,"true"));
+						statementBlock.clear();
+						//break;
 					}
 					else
 					{
-						//System.out.println("n");
-						System.out.println("FK2 " + temp.getName() + " .. " + cNode.getName());
-						graphEdges.add(new Edge(temp,cNode));
+						
+						
+	//					if(temp.getName().contains("while"))
+	//						graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
+	//					
+						System.out.println("new COND " + temp.getName() + " " + cNode.getName());
+						//link up this and the next statement down if the next down is 
+						
+						//INode temp = parseStatements(((Block )whileLine.getBody()).statements(), cNode, true);
+						
+						//graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
+						
+						if(temp.getCode().contains("while"))
+						{
+							System.out.println("y");
+							System.out.println("FUCKKKKKKKKKKKKK " + temp.getName() + " >> " + cNode.getName() + " FALSE");
+							graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
+						}
+						else
+						{
+							//System.out.println("n");
+							System.out.println("FK2 " + temp.getName() + " .. " + cNode.getName());
+							graphEdges.add(new Edge(temp,cNode));
+						}
 					}
 					
 					System.out.println("hit it" + "condition " + conditional + " cd2 " + cd2 + "cNode " + cNode.getName() + "pNode " + pNode.getName());
@@ -219,8 +269,12 @@ public class ControlFlowParser
 					controlFlowNodes.add(new Node("BasicBlock " + currentNode, codeLine.toString()));
 				break;	
 			}
-			
-			if(!condFalse)
+			if(cNode.getCode().contains("return"))
+			{
+				
+			}
+		
+			else if(!condFalse)
 			{
 				if(conditional == true)
 				{
@@ -246,7 +300,10 @@ public class ControlFlowParser
 			{
 				//System.out.println("RANDY MAKING " + pNode.getName() + " " + cNode.getName () + "true");
 				//graphEdges.add(new ConditionalEdge(pNode,cNode,"true"));
+			
 			}
+		
+			
 			condFalse = false;
 			pNode = cNode;	
 		}
@@ -266,8 +323,8 @@ public class ControlFlowParser
 	public void printoutClassTextual(MethodDeclaration method)
 	{
 		/*Create initial entry and exit nodes, as algorithm says*/
-		INode entryNode = new Node("EntryNode1",method.getName().getFullyQualifiedName() + "{");
-		INode exitNode = new Node("ExitNode1","main");
+		entryNode = new Node("EntryNode1",method.getName().getFullyQualifiedName() + "{");
+		exitNode = new Node("ExitNode1","main");
 		
 		/*Add first and final nodes to our collection*/
 		controlFlowNodes.add(entryNode);
@@ -306,6 +363,7 @@ public class ControlFlowParser
 					System.out.println(returnLine.getExpression().toString());
 					recentNode = new Node("BasicBlock " + currentNode, "return " + returnLine.getExpression());
 					controlFlowNodes.add(recentNode);
+					//System.out.println("makin " + previous.getName() + " " + recentNode.getName());
 					graphEdges.add(new Edge(previous, recentNode));
 					graphEdges.add(new Edge(recentNode, exitNode));
 					//prevConditionalStatement = true;
@@ -319,6 +377,8 @@ public class ControlFlowParser
 						printCollectionContents();
 						return;
 					}
+					
+					
 				break;
 				case switchType:
 				break;

@@ -6,18 +6,20 @@ public class BasicTest4
 		int i = 1; 										//Block 2
 		int sum = 0;									//Block 3
 		
-		throw Exception();
+		//throw Exception();
 		//return null;									//Block 4
 		
 		while (i<= n)									//Block 4		T-> Block 5, F->Block 10
 		{
 			while (i<= n)								//Block 5		T->Block 6, F-> Block 4
 			{
-				while (i<= n)							//Block 6		T->Block 7, F-> Block 5
+				return null;							//Block 6
+			
+				while (i<= n)							//Block 7		T->Block 7, F-> Block 5
 				{
-					while (i<= n)						//Block 7		T->Block 8, F-> Block 6
+					while (i<= n)						//Block 8		T->Block 8, F-> Block 6
 					{
-						System.out.println("bob");		//Block 8
+						System.out.println("bob");		//Block 9
 						return null;
 					}
 				}
