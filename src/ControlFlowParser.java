@@ -20,6 +20,7 @@ import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
+import org.eclipse.jdt.core.dom.ThrowStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.eclipse.jface.text.Document;
 
@@ -134,6 +135,14 @@ public class ControlFlowParser
 				case switchType:
 				break;
 				case throwType:
+					ThrowStatement throwLine = (ThrowStatement) codeLine;
+					cNode = new ConditionalNode("BasicBlock" + currentNode, "throw" + throwLine.getExpression());
+					controlFlowNodes.add(cNode);
+					if(pNode.getCode().contains("throw"))
+					{
+						System.out.println("THROW" + pNode.getName() + " " + cNode.getName() + "T");
+						graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
+					}
 				break;
 				case ifType: 
 					IfStatement ifLine = (IfStatement) codeLine;
@@ -310,11 +319,22 @@ public class ControlFlowParser
 						printCollectionContents();
 						return;
 					}
-					
 				break;
 				case switchType:
 				break;
 				case throwType:
+					ThrowStatement throwLine = (ThrowStatement) codeLine;
+					System.out.println(throwLine.getExpression().toString());
+					recentNode = new Node("BasicBlock" + currentNode, "throw" + throwLine.getExpression());
+					controlFlowNodes.add(recentNode);
+					graphEdges.add(new Edge(previous, recentNode));
+					graphEdges.add(new Edge(recentNode, exitNode));
+					contents.clear();
+					if(contents.isEmpty())
+					{
+						printCollectionContents();
+						return;
+					}
 				break;
 				case ifType: 
 					System.out.println("if");
