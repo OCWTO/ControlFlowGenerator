@@ -11,13 +11,17 @@ public class BasicTest3
 			{
 				while (i<= n)							//Block 6		T->Block 7, F-> Block 5
 				{
-					while (i<= n)						//Block 7		T->Block 8, F-> Block 6
+					System.out.println("n");			//Block 7
+				}
+					while (i<= n)						//Block 8		T->Block 8, F-> Block 6
 					{
-						System.out.println("bob");		//Block 8
-						return null;
+						System.out.println("bob");		//Block 9
+						return null;					//Block 10
 					}
 				}
 			}
+			System.out.println("fail?");				//Block 11
+			System.out.println("n");					//Block 12
 		}
-		System.out.println("done");
+		System.out.println("done");						//Block 12
 }
