@@ -5,21 +5,21 @@ public class BasicTest4
 		int n = 10;										//Block 1 (in example it reads in but we simplified it)
 		int i = 1; 										//Block 2
 		int sum = 0;									//Block 3
+		
+		throw Exception();
+		//return null;									//Block 4
+		
 		while (i<= n)									//Block 4		T-> Block 5, F->Block 10
 		{
-			if (i > n)
+			while (i<= n)								//Block 5		T->Block 6, F-> Block 4
 			{
-				throw new Exception();
-			}
-			else if(i< n)
-			{
-				return null;
-			}
-			else
-			{
-				while(i==n)
+				while (i<= n)							//Block 6		T->Block 7, F-> Block 5
 				{
-					System.out.println("stuff");
+					while (i<= n)						//Block 7		T->Block 8, F-> Block 6
+					{
+						System.out.println("bob");		//Block 8
+						return null;
+					}
 				}
 			}
 		}

@@ -109,11 +109,8 @@ public class ControlFlowParser
 		
 		//So this tells us we are down here on a conditional statement
 		boolean conditional = prevConditional;
-		
-		
 		boolean condFalse = false;
 		boolean cd2 = false;
-		boolean skip = false;
 
 		/*While there's a block to parse*/
 		while(!statementBlock.isEmpty())
@@ -203,7 +200,7 @@ public class ControlFlowParser
 					System.out.println("hit it" + "condition " + conditional + " cd2 " + cd2 + "cNode " + cNode.getName() + "pNode " + pNode.getName());
 					conditional = false;
 					cd2 =true;
-					skip = true;
+					//skip = true;
 					condFalse = true;
 					
 					
@@ -294,34 +291,24 @@ public class ControlFlowParser
 			switch(codeLine.getNodeType())
 			{
 				case returnType:
-					System.out.println("return");
+					//System.out.println("return");
 					ReturnStatement returnLine = (ReturnStatement) codeLine;
-					recentNode = new ConditionalNode("BasicBlock " + currentNode, "return " + returnLine.getExpression());
+					//codeLine.get
+					System.out.println(returnLine.getExpression().toString());
+					recentNode = new Node("BasicBlock " + currentNode, "return " + returnLine.getExpression());
 					controlFlowNodes.add(recentNode);
+					graphEdges.add(new Edge(previous, recentNode));
+					graphEdges.add(new Edge(recentNode, exitNode));
+					//prevConditionalStatement = true;
+					//INode temp1 = null;
+					//return;
 					
-					prevConditionalStatement = true;
-					INode temp1 = null;
-					try
-					{
-						temp1 = parseStatements(((Block )returnLine.getParent()).statements(), recentNode, true);
-					}
-					catch(ClassCastException e)
-					{
-						List<Statement> parent = new ArrayList<Statement>();
-						ASTNode singleStatement = ((ReturnStatement) returnLine).getParent();
-						parent.add((Statement) singleStatement);
-						temp1 = parseStatements(parent, recentNode, true);
-					}
+					contents.clear();
 					
-					if(temp1.getCode().contains("return"))
+					if(contents.isEmpty())
 					{
-						System.out.println("MAKING1 " + temp1.getName() + " " + recentNode.getName() + "FALSE");
-						graphEdges.add(new ConditionalEdge(temp1, recentNode, "false"));
-					}
-					else
-					{
-						System.out.println("MAKING33 " + temp1.getName() + " " + recentNode.getName());
-						graphEdges.add(new Edge(temp1,recentNode));
+						printCollectionContents();
+						return;
 					}
 					
 				break;
@@ -404,25 +391,38 @@ public class ControlFlowParser
 				break;	
 			}
 
-			/*If no conditional edge to be added*/
-			if(conditionalEdge == false)
-			{
-				/*Then we just add a plain edge*/
-				graphEdges.add(new Edge(previous, recentNode));
+//			if(contents.isEmpty())
+//			{
+//				return;
+//			}
+//			else
+//			{
+				/*If no conditional edge to be added*/
+				if(conditionalEdge == false)
+				{
+					/*Then we just add a plain edge*/
+					graphEdges.add(new Edge(previous, recentNode));
+				}
+				/*If there is then its a false edge, since the true case is dealt with by parseStatements()*/
+				else
+				{
+					graphEdges.add(new ConditionalEdge(previous, recentNode, "false"));
+					prevConditionalStatement = false;
+				}
+				
+				previous = recentNode;	
+				currentNode++;
 			}
-			/*If there is then its a false edge, since the true case is dealt with by parseStatements()*/
-			else
-			{
-				graphEdges.add(new ConditionalEdge(previous, recentNode, "false"));
-				prevConditionalStatement = false;
-			}
+			//Issue here could be if it ends with a conditional so while(...) return
+			graphEdges.add(new Edge(previous, exitNode));
 			
-			previous = recentNode;	
-			currentNode++;
-		}
-		//Issue here could be if it ends with a conditional so while(...) return
-		graphEdges.add(new Edge(previous, exitNode));
+			printCollectionContents();
+			//printMethodContents(method);
+		//}
+	}
 		
+	private void printCollectionContents()
+	{
 		System.out.println("NODES");
 		for(INode cfNode: controlFlowNodes)
 		{
@@ -434,10 +434,7 @@ public class ControlFlowParser
 		{
 			System.out.println("FROM " + cfEdge.getFrom().getName() + " TO:" + cfEdge.getTo().getName()+ " COND:" + cfEdge.getCondition());
 		}
-		//printMethodContents(method);
 	}
-		
-		
 	
 	
 	

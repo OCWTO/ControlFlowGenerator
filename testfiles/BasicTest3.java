@@ -14,6 +14,7 @@ public class BasicTest3
 					while (i<= n)						//Block 7		T->Block 8, F-> Block 6
 					{
 						System.out.println("bob");		//Block 8
+						return null;
 					}
 				}
 			}

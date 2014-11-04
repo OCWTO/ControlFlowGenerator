@@ -2,7 +2,7 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="C:/Users/Craig/Desktop/4th Year/libs/apache/commons-io-2.4/commons-io-2.4.jar"/>
+	<classpathentry kind="lib" path="//studenthome.cis.strath.ac.uk/homes/system/Windows/Desktop/commons-io-2.4/commons-io-2.4.jar"/>
 	<classpathentry kind="var" path="ECLIPSE_HOME/plugins/org.eclipse.core.contenttype_3.4.200.v20140207-1251.jar"/>
 	<classpathentry kind="var" path="ECLIPSE_HOME/plugins/org.eclipse.core.jobs_3.6.0.v20140424-0053.jar"/>
 	<classpathentry kind="var" path="ECLIPSE_HOME/plugins/org.eclipse.core.resources_3.9.0.v20140514-1307.jar"/>
