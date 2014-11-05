@@ -5,16 +5,27 @@ public class BasicTest5
 		int n = 10;										//Block 1 (in example it reads in but we simplified it)
 		int i = 1; 										//Block 2
 		int sum = 0;									//Block 3
-
-		if(n == i)										//Block 4
+		
+		//throw Exception();
+		//return null;									//Block 4
+		
+		while (i<= n)									//Block 4		T-> Block 5, F->Block 10
 		{
-			System.out.println(n);						//Block 5
-			System.out.println(i);						//Block 6
-			
-			while(n == 0)								//Block 7
+			//return null;
+		
+			while (i<= n)								//Block 5		T->Block 6, F-> Block 4
 			{
-				System.out.println("more");				//Block 8
+				return null;							//Block 6
+			
+				while (i<= n)							//Block 6		T->Block 7, F-> Block 5
+				{
+					for(i; i< n; i++)						//Block 7		T->Block 8, F-> Block 6
+					{
+						System.out.println("bob");		//Block 8
+						return null;					//Block 9
+					}
+				}
 			}
 		}
-		System.out.println(sum);						//Block 9
+		System.out.println("done");						//Block 10
 }
