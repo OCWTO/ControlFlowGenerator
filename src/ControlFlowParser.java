@@ -113,12 +113,15 @@ public class ControlFlowParser
 		
 		boolean condFalse = false;
 		boolean cd2 = false;
-
+		boolean linkUpIf = false;
+		
 		/*While there's a block to parse*/
 		while(!statementBlock.isEmpty())
 		{
 			Statement codeLine = statementBlock.remove(0);
 			currentNode++;
+			
+			//if()
 			
 			switch(codeLine.getNodeType())
 			{
@@ -312,6 +315,8 @@ public class ControlFlowParser
 		/*Create initial entry and exit nodes, as algorithm says*/
 		entryNode = new Node("EntryNode1",method.getName().getFullyQualifiedName() + "{");
 		exitNode = new Node("ExitNode1","main");
+		INode finalStateNode = null;
+		
 		
 		/*Add first and final nodes to our collection*/
 		controlFlowNodes.add(entryNode);
@@ -328,6 +333,7 @@ public class ControlFlowParser
 		 */
 		boolean prevConditionalStatement = false;
 		boolean conditionalEdge = false;
+		boolean linkUpIf = false;
 		
 		/*PreviousNode is our initial node*/
 		previousNode = entryNode;
@@ -340,6 +346,9 @@ public class ControlFlowParser
 			//If the last statement parsed was a conditional
 			if(prevConditionalStatement == true)
 				conditionalEdge = true;		//Then there's a conditionalEdge (false) to the next, since the true case is dealt with elsewhere
+			
+			if(finalStateNode != null)
+				linkUpIf = true;
 			
 			//Switch on the node type, the node type represent the type of statement the codeline represents
 			switch(codeLine.getNodeType())
@@ -416,18 +425,33 @@ public class ControlFlowParser
 					/*If the first node inside of the loop is another conditional  then we want an edge with the condition false
 					 * from that node to the current node (so if the next conditional 
 					 */
+					System.out.println(recentNode.getName() + " ZZZZZZZ");
 					if(nextNode.getCode().contains("while") || nextNode.getCode().contains("if"))
 					{
+						System.out.println("entering next recent " + nextNode.getName() + " " + recentNode.getName());
 						graphEdges.add(new ConditionalEdge(nextNode, recentNode, "false"));
 					}
 					//Otherwise there's no conditional inside so no need to link back the next statement to this (normal statement to conditional
+					else if(recentNode.getCode().contains("if"))
+					{
+						System.out.println("Recent node " + recentNode.getName());
+						finalStateNode = nextNode;
+						//recentNode = nextNode;
+						conditionalEdge = false;
+					}
 					else
 					{
+						System.out.println("Making edge 1 " + nextNode.getName() + " " + recentNode.getName());
 						graphEdges.add(new Edge(nextNode,recentNode));
 					}
+					
+					
 					//parse the then
 					//parse the else
-
+					
+					//if we go inside an if then
+					//we need to set someth
+					
 				break;
 				
 				case whileType:
@@ -471,18 +495,33 @@ public class ControlFlowParser
 				break;	
 			}	//End of switch
 			
+				if(linkUpIf)
+				{
+					graphEdges.add(new Edge(finalStateNode,recentNode));
+					finalStateNode = null;
+					linkUpIf = false;
+				}
+				
 				/*If no conditional edge to be added*/
 				if(conditionalEdge == false)
 				{
 					/*Then we just add a plain edge*/
+					System.out.println("Making edge 2 " + previousNode.getName() + " " + recentNode.getName());
 					graphEdges.add(new Edge(previousNode, recentNode));
 				}
 				/*If there is then its a false edge, since the true case is dealt with by parseStatements()*/
+				else if(finalStateNode != null)
+				{
+					System.out.println("MAKING 69 " + previousNode.getName() + " " + finalStateNode.getName());
+					graphEdges.add(new Edge(previousNode, finalStateNode));
+				}
 				else
 				{
+					System.out.println("Making edge 3 " + previousNode.getName() + " " + recentNode.getName());
 					graphEdges.add(new ConditionalEdge(previousNode, recentNode, "false"));
 					prevConditionalStatement = false;
 				}
+				//finalStateNode = null;
 				previousNode = recentNode;	
 				currentNode++;
 			}//End of while
@@ -491,9 +530,15 @@ public class ControlFlowParser
 			 * to the exit of the program.
 			 */
 			if(previousNode.getCode().contains("if") || previousNode.getCode().contains("while"))
+			{
+				System.out.println("Making edge 6 " + previousNode.getName() + " " + recentNode.getName());
 				graphEdges.add(new ConditionalEdge(previousNode, exitNode, "false"));
+			}
 			else
+			{
+				System.out.println("Making edge 5 " + previousNode.getName() + " " + recentNode.getName());
 				graphEdges.add(new Edge(previousNode, exitNode));
+			}
 			
 			printCollectionContents();
 	}
@@ -512,6 +557,7 @@ public class ControlFlowParser
 			System.out.println("FROM " + cfEdge.getFrom().getName() + " TO:" + cfEdge.getTo().getName()+ " COND:" + cfEdge.getCondition());
 		}
 	}
+
 
 	/*Takes in the source folder and adds all .java files in it and its subdirectories to projectFiles*/
 	private void collectJavaFiles(File srcFolder) throws IOException
