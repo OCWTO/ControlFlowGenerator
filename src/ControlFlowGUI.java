@@ -59,7 +59,14 @@ public class ControlFlowGUI implements ActionListener  {
 		
 		JMenuItem mntmExit = new JMenuItem("Exit");
 		mnFile.add(mntmExit);
-		mntmExit.addActionListener(this);
+		mntmExit.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				 System.exit(0);
+			}
+			
+		});
 	
 	}
 	
@@ -78,7 +85,7 @@ public class ControlFlowGUI implements ActionListener  {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		// TODO Auto-generated method stub
-		
+		 System.exit(0);
 	}
 	
 	public void windowClosing(WindowEvent e) {

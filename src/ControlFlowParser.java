@@ -126,6 +126,58 @@ public class ControlFlowParser
 			switch(codeLine.getNodeType())
 			{
 				case forType: System.out.println("for");
+						ForStatement forLine = (ForStatement) codeLine;
+						cNode = new ConditionalNode("BasicBlock" + currentNode, "for" + forLine.getExpression());
+						controlFlowNodes.add(cNode);
+						
+						if(pNode.getCode().contains("for") && controlFlowNodes.get(controlFlowNodes.size()-2) == pNode)
+						{
+							System.out.println(pNode instanceof ConditionalNode);
+							System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName() + "T");
+							graphEdges.add(new ConditionalEdge(pNode, cNode,"ture"));
+						}
+						else if(pNode.getCode().contains("for") && cNode.getCode().contains("for"))
+						{
+							graphEdges.add(new ConditionalEdge(cNode,pNode,"false"));
+						}
+						else
+						{
+							System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName() + "V2");
+							graphEdges.add(new Edge(pNode, cNode));
+						}
+						
+						temp = parseStatements(((Block )forLine.getBody()).statements(), cNode, true);
+						
+						if(temp.getCode().contains("return") || temp.getCode().contains("throw"))
+						{
+							if(controlFlowNodes.get(controlFlowNodes.size()-2)== cNode)
+							{
+								System.out.println("making edge" + cNode.getName() + " " + temp.getName());
+								graphEdges.add(new ConditionalEdge(cNode, temp, "true"));
+							}
+							statementBlock.clear();
+						}
+						else
+						{
+							System.out.println("new COND " + temp.getName() + " " + cNode.getName());
+							
+							if(temp.getCode().contains("for"))
+							{
+								System.out.println("y");
+								System.out.println("FOR " + temp.getName() +" >> " + cNode.getName() + "FALSE");
+								graphEdges.add(new ConditionalEdge(temp ,cNode, "false"));
+							}
+							else
+							{
+								System.out.println("FOR2 " + temp.getName() + ".." + cNode.getName());
+								graphEdges.add(new Edge(temp, cNode));
+							}
+						}
+						
+						System.out.println("hit it" + "condition " + conditional + " cd2 " + cd2 + "cNode " + cNode.getName() + "pNode " + pNode.getName());
+						conditional = false;
+						cd2 = true;
+						condFalse = true;
 				break;
 				case returnType:
 					//Create a ReturnStatement and get the extra information from it
@@ -452,6 +504,27 @@ public class ControlFlowParser
 					//if we go inside an if then
 					//we need to set someth
 					
+				break;
+				
+				case forType:
+					ForStatement forLine = (ForStatement) codeLine;
+					recentNode = new ConditionalNode("BasicBlock " + currentNode, "for" + forLine.getExpression());
+					controlFlowNodes.add(recentNode);
+					
+					prevConditionalStatement = true;
+					
+					nextNode = parseStatements(((Block )forLine.getBody()).statements(), recentNode, true);
+					System.out.println("returned");
+					if(nextNode.getCode().contains("for"))
+					{
+						graphEdges.add(new ConditionalEdge(nextNode, recentNode, "false"));
+					}
+					else
+					{
+						//If the next node doesnt terminate the program then create a loop around edge
+						if(!nextNode.getCode().contains("return") && !nextNode.getCode().contains("throw"))
+							graphEdges.add(new Edge(nextNode,recentNode));
+					}
 				break;
 				
 				case whileType:
