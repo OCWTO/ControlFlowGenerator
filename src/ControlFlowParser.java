@@ -436,7 +436,6 @@ public class ControlFlowParser
 					{
 						System.out.println("Recent node " + recentNode.getName());
 						finalStateNode = nextNode;
-						//recentNode = nextNode;
 						conditionalEdge = false;
 					}
 					else
@@ -444,10 +443,11 @@ public class ControlFlowParser
 						System.out.println("Making edge 1 " + nextNode.getName() + " " + recentNode.getName());
 						graphEdges.add(new Edge(nextNode,recentNode));
 					}
+
 					
-					
-					//parse the then
 					//parse the else
+					Statement elseStatement = ifLine.getElseStatement();
+					contents.add(0, elseStatement);
 					
 					//if we go inside an if then
 					//we need to set someth
