@@ -19,7 +19,7 @@ public class BasicTest5
 			
 				while (i<= n)							//Block 6		T->Block 7, F-> Block 5
 				{
-					for(i; i< n; i++)						//Block 7		T->Block 8, F-> Block 6
+					for(int a = 0; a< n; a++)						//Block 7		T->Block 8, F-> Block 6
 					{
 						System.out.println("bob");		//Block 8
 						return null;					//Block 9

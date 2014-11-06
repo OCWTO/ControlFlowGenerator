@@ -602,7 +602,7 @@ public class ControlFlowParser
 			/*If the last statement is a conditional then we want that to have an edge with an evaluate to false
 			 * to the exit of the program.
 			 */
-			if(previousNode.getCode().contains("if") || previousNode.getCode().contains("while"))
+			if(previousNode.getCode().contains("if") || previousNode.getCode().contains("while") || previousNode.getCode().contains("for"))
 			{
 				System.out.println("Making edge 6 " + previousNode.getName() + " " + recentNode.getName());
 				graphEdges.add(new ConditionalEdge(previousNode, exitNode, "false"));
