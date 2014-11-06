@@ -8,15 +8,23 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 
+import javax.swing.JFileChooser;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+
 import java.awt.Button;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+
 import javax.swing.BoxLayout;
+
+import org.eclipse.core.internal.resources.Folder;
+
 import java.awt.TextField;
 import java.awt.Label;
+import java.io.File;
+import javax.swing.JLabel;
 
 
 public class ControlFlowGUI implements ActionListener  {
@@ -51,17 +59,17 @@ public class ControlFlowGUI implements ActionListener  {
 	 */
 	private void initialise() {
 		frame = new JFrame();
-		frame.setBounds(100, 100, 397, 272);
+		frame.setBounds(100, 100, 399, 206);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
 		
 		JPanel panel = new JPanel();
-		panel.setBounds(0, 0, 381, 212);
+		panel.setBounds(0, 0, 383, 146);
 		frame.getContentPane().add(panel);
 		panel.setLayout(null);
 		
 		Button createButton = new Button("Create");
-		createButton.setBounds(267, 168, 102, 33);
+		createButton.setBounds(10, 94, 102, 33);
 		panel.add(createButton);
 		createButton.addActionListener(new ActionListener(){
 
@@ -74,26 +82,41 @@ public class ControlFlowGUI implements ActionListener  {
 		});
 		
 		Button loadButton = new Button("Load");
-		loadButton.setBounds(285, 63, 84, 33);
+		loadButton.setBounds(10, 55, 102, 33);
 		panel.add(loadButton);
 		
-		TextField displayFileName = new TextField();
-		displayFileName.setBounds(10, 63, 269, 33);
-		panel.add(displayFileName);
-		
-		Label fileName = new Label("File Name");
-		fileName.setBounds(10, 35, 62, 22);
-		panel.add(fileName);
+		JLabel lblClickLoadTo = new JLabel("Click load to chose file then Control Flow diagram will be created");
+		lblClickLoadTo.setBounds(10, 11, 327, 38);
+		panel.add(lblClickLoadTo);
 		loadButton.addActionListener(new ActionListener(){
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
-				
-			}
-			
-			
+				JFileChooser choseFile = new JFileChooser();
+			   
+			    choseFile.showDialog(null, "Open file");
+
+			      String folder = choseFile.getCurrentDirectory().toString();
+			      File file = choseFile.getSelectedFile();
+			      
+			      File runnerFile = new File(System.getProperty(folder) + file);		//Windows file
+					//File projectFile = new File(System.getProperty("user.dir") + "/testfiles/TestClass.java");		//Linux file
+					
+					File projectFolder = new File(System.getProperty(folder));
+
+					try {
+						ControlFlowParser generator = new ControlFlowParser(projectFolder, runnerFile);
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}		
+			      
+			    
+
+			}	
 		});
+		
 		
 		JMenuBar menuBar = new JMenuBar();
 		frame.setJMenuBar(menuBar);
