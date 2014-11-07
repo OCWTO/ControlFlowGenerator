@@ -15,14 +15,14 @@ public class BasicTest5
 		
 			while (i<= n)								//Block 5		T->Block 6, F-> Block 4
 			{
-				return null;							//Block 6
+				//return null;							//Block 6
 			
 				while (i<= n)							//Block 6		T->Block 7, F-> Block 5
 				{
 					for(int a = 0; a< n; a++)						//Block 7		T->Block 8, F-> Block 6
 					{
 						System.out.println("bob");		//Block 8
-						return null;					//Block 9
+						//return null;					//Block 9
 					}
 				}
 			}

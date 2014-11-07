@@ -82,6 +82,7 @@ public class ControlFlowGUI implements ActionListener  {
 			     // System.out.println(folder);
 			      
 			      File runnerFile = new File(System.getProperty("user.dir") + file);		//Windows file
+			      //File runnerFile = new File(System.getProperty("user.dir") + "\\testfiles\\BasicTest5.java");
 			      //File runnerFile = new File(System.getProperty(folder) + file);
 					//File projectFile = new File(System.getProperty("user.dir") + "/testfiles/TestClass.java");		//Linux file
 					
@@ -90,8 +91,8 @@ public class ControlFlowGUI implements ActionListener  {
 					
 					
 					try {
-						System.out.println(file);
-						System.out.println(projectFolder);
+						//System.out.println(file);
+						//System.out.println(projectFolder);
 						ControlFlowParser generator = new ControlFlowParser(projectFolder, runnerFile);
 					} catch (Exception e1) {
 						// TODO Auto-generated catch block
