@@ -1,13 +1,8 @@
 import java.io.File;
-import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.SuffixFileFilter;
-import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
@@ -15,60 +10,51 @@ import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.DoStatement;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
-import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.Statement;
+import org.eclipse.jdt.core.dom.SwitchCase;
+import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.ThrowStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.eclipse.jface.text.Document;
 
-/*										ALGORITHM
-		1. Create entry and exit nodes; create edge (entry, B1); create edges (Bk, exit) for each basic block Bk
-		that contains an exit from the program.
-		
-		2. Traverse the list of basic blocks and add a CFG edge from each node Bi to each node Bj if and only
-		if Bj can immediately follow Bi
-		in some execution sequence, that is, if:
-			(a) there is a conditional or unconditional goto statement from the last statement of Bi to the first
-			statement of Bj , or
-			(b) Bj immediately follows Bi
-			in the order of the program, and Bi does not end in an unconditional
-			goto statement.
-		
-		3. Label edges that represent conditional transfers of control as “T” (true) or “F” (false); other edges are
-		unlabelled.
-*/
 
 public class ControlFlowParser
 {
-	/*JDT variables*/
+	//JDT variables
 	private CompilationUnit unit;
 	private String source;
 	private Document sourceDoc;
 	private ASTParser parser;
 
-	private File inputFile;
-	
-	private List<File> projectFiles;
-	
+	//List for collection of generated Nodes and Edges
 	private List<INode> controlFlowNodes= new ArrayList<INode>();
 	private List<IEdge> graphEdges = new ArrayList<IEdge>();
-	private Deque<INode> nodeStack = new ArrayDeque<INode>();
+	
+	//Nodes to represent entry to the program and exit
 	private INode entryNode;
 	private INode exitNode;
 	
+	//Mostly temporary variables used in a few places to represent nodes current being parsed
 	private int currentNode;
 	private INode previousNode = null;
 	private INode recentNode = null;
+	private BasicBlock entryBlock = new BasicBlock("ENTER");
 	
-	private final int ifType = 25;		//need to be fields
-	private final int whileType = 61;	//field
+	//finals to represent node types that correspond to certain types of statement
+	private final int ifType = 25;
+	private final int whileType = 61;	
 	private final int returnType = 41;
 	private final int switchType = 50;
 	private final int throwType = 53;
 	private final int forType = 24;
+	private final int switchCase = 49;
+	private final int doType = 19;
+	
 	/**
 	 * 
 	 * @param srcFolder The source folder of the project that contains
@@ -77,7 +63,7 @@ public class ControlFlowParser
 	 * it must be a .java file and contain a main method
 	 * @throws Exception If there is no main method in the inputFile
 	 */
-	public ControlFlowParser(File srcFolder, File inputFile) throws Exception
+	public ControlFlowParser(File inputFile) throws Exception
 	{
 		source = FileUtils.readFileToString(inputFile);
 		sourceDoc = new Document(source);
@@ -88,115 +74,95 @@ public class ControlFlowParser
 		
 		currentNode = 1;
 		MethodDeclaration mainMethod;
-		this.inputFile = inputFile;
 	
 		if((mainMethod = hasMainMethod(unit.types())) == null)
 			throw new Exception("The input file must contain a 	main method");
-		collectJavaFiles(srcFolder);
 		
 		printoutClassTextual(mainMethod);
-		
 		//printMethodContents(mainMethod);
-		
 	}
 
-
+	//we use this method to recursively parse statements inside of loops
 	private INode parseStatements(List<Statement> statementBlock,INode previousNode, boolean prevConditional)
 	{		
-		INode pNode = previousNode;
-		INode cNode = null;
-		INode temp = null;
-		//this only gets called on conditionals so this is always true on first call
+		INode prevNode = previousNode;
+		INode curNode = null;
+		
+		//tempnode used to represent a node inside the loop, so we can loop back correctly
+		INode tempNode = null;
 		
 		//So this tells us we are down here on a conditional statement
 		boolean conditional = prevConditional;
-		
 		boolean condFalse = false;
 		boolean cd2 = false;
-		boolean linkUpIf = false;
 		
 		/*While there's a block to parse*/
 		while(!statementBlock.isEmpty())
 		{
 			Statement codeLine = statementBlock.remove(0);
 			currentNode++;
-			
-			//if()
-			
+
 			switch(codeLine.getNodeType())
 			{
 				case forType: System.out.println("for");
 						ForStatement forLine = (ForStatement) codeLine;
-						cNode = new ConditionalNode("BasicBlock" + currentNode, "for" + forLine.getExpression());
-						controlFlowNodes.add(cNode);
+						curNode = new ConditionalNode("BasicBlock" + currentNode, "for" + forLine.getExpression());
+						controlFlowNodes.add(curNode);
 						
-						if(pNode.getCode().contains("for") && controlFlowNodes.get(controlFlowNodes.size()-2) == pNode)
+						if(prevNode.getCode().contains("for") && controlFlowNodes.get(controlFlowNodes.size()-2) == prevNode)
 						{
-							System.out.println(pNode instanceof ConditionalNode);
-							System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName() + "T");
-							graphEdges.add(new ConditionalEdge(pNode, cNode,"ture"));
+							graphEdges.add(new ConditionalEdge(prevNode, curNode,"ture"));
 						}
-						else if(pNode.getCode().contains("for") && cNode.getCode().contains("for"))
+						else if(prevNode.getCode().contains("for") && curNode.getCode().contains("for"))
 						{
-							graphEdges.add(new ConditionalEdge(cNode,pNode,"false"));
+							graphEdges.add(new ConditionalEdge(curNode,prevNode,"false"));
 						}
 						else
 						{
-							System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName() + "V2");
-							graphEdges.add(new Edge(pNode, cNode));
+							graphEdges.add(new Edge(prevNode, curNode));
 						}
 						
-						temp = parseStatements(((Block )forLine.getBody()).statements(), cNode, true);
+						tempNode = parseStatements(((Block )forLine.getBody()).statements(), curNode, true);
 						
-						if(temp.getCode().contains("return") || temp.getCode().contains("throw"))
+						if(tempNode.getCode().contains("return") || tempNode.getCode().contains("throw"))
 						{
-							if(controlFlowNodes.get(controlFlowNodes.size()-2)== cNode)
+							if(controlFlowNodes.get(controlFlowNodes.size()-2)== curNode)
 							{
-								System.out.println("making edge" + cNode.getName() + " " + temp.getName());
-								graphEdges.add(new ConditionalEdge(cNode, temp, "true"));
+								graphEdges.add(new ConditionalEdge(curNode, tempNode, "true"));
 							}
 							statementBlock.clear();
 						}
 						else
 						{
-							System.out.println("new COND " + temp.getName() + " " + cNode.getName());
-							
-							if(temp.getCode().contains("for"))
+							if(tempNode.getCode().contains("for"))
 							{
-								System.out.println("y");
-								System.out.println("FOR " + temp.getName() +" >> " + cNode.getName() + "FALSE");
-								graphEdges.add(new ConditionalEdge(temp ,cNode, "false"));
+								graphEdges.add(new ConditionalEdge(tempNode ,curNode, "false"));
 							}
 							else
 							{
-								System.out.println("FOR2 " + temp.getName() + ".." + cNode.getName());
-								graphEdges.add(new Edge(temp, cNode));
+								graphEdges.add(new Edge(tempNode, curNode));
 							}
 						}
-						
-						System.out.println("hit it" + "condition " + conditional + " cd2 " + cd2 + "cNode " + cNode.getName() + "pNode " + pNode.getName());
 						conditional = false;
 						cd2 = true;
 						condFalse = true;
 				break;
 				case returnType:
-					//Create a ReturnStatement and get the extra information from it
 					ReturnStatement returnLine = (ReturnStatement) codeLine;
-					cNode = new Node("BasicBlock " + currentNode, "return " + returnLine.getExpression());
-					controlFlowNodes.add(cNode);
+					curNode = new Node("BasicBlock " + currentNode, "return " + returnLine.getExpression());
+					controlFlowNodes.add(curNode);
 					
-					//MAYBE this needs removed?
-					if(pNode.getCode().contains("while") || pNode.getCode().contains("if"))
+					if(prevNode.getCode().contains("while") || prevNode.getCode().contains("if"))
 					{
 						//Maybe this needs removed
 						//graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
 					}
 					else
 					{
-						graphEdges.add(new Edge(pNode, cNode));
+						graphEdges.add(new Edge(prevNode, curNode));
 					}
 					
-					graphEdges.add(new Edge(cNode, exitNode));
+					graphEdges.add(new Edge(curNode, exitNode));
 					
 					statementBlock.clear();					
 				break;
@@ -205,113 +171,82 @@ public class ControlFlowParser
 				break;
 				case throwType:
 					ThrowStatement throwLine = (ThrowStatement) codeLine;
-					cNode = new ConditionalNode("BasicBlock" + currentNode, "throw " + throwLine.getExpression());
-					controlFlowNodes.add(cNode);
+					curNode = new ConditionalNode("BasicBlock" + currentNode, "throw " + throwLine.getExpression());
+					controlFlowNodes.add(curNode);
 					
-					if(pNode.getCode().contains("while") || pNode.getCode().contains("if"))
+					if(prevNode.getCode().contains("while") || prevNode.getCode().contains("if"))
 					{
 						//Maybe this needs removed?
 						//graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
 					}
 					else
 					{
-						graphEdges.add(new Edge(pNode, cNode));
+						graphEdges.add(new Edge(prevNode, curNode));
 					}
 					
-					graphEdges.add(new Edge(cNode, exitNode));
+					graphEdges.add(new Edge(curNode, exitNode));
 					
 					statementBlock.clear();					
 				break;
 				case ifType: 
 					IfStatement ifLine = (IfStatement) codeLine;
-					cNode = new ConditionalNode("BasicBlock " + currentNode, "if " + ifLine.getExpression());
-					controlFlowNodes.add(cNode);
+					curNode = new ConditionalNode("BasicBlock " + currentNode, "if " + ifLine.getExpression());
+					controlFlowNodes.add(curNode);
 					
-					if(pNode.getCode().contains("while") || pNode.getCode().contains("if"))
+					if(prevNode.getCode().contains("while") || prevNode.getCode().contains("if"))
 					{
-						System.out.println("IF MAKING " + pNode.getName() + " " + cNode.getName() + "T");
-						graphEdges.add(new ConditionalEdge(pNode, cNode,"true"));
+						graphEdges.add(new ConditionalEdge(prevNode, curNode,"true"));
 					}
 				break;
 				case whileType:
 					WhileStatement whileLine = (WhileStatement) codeLine;
-					cNode =  new ConditionalNode("BasicBlock " + currentNode, "while " + whileLine.getExpression());
-					controlFlowNodes.add(cNode);
+					curNode =  new ConditionalNode("BasicBlock " + currentNode, "while " + whileLine.getExpression());
+					controlFlowNodes.add(curNode);
 					
-					if(pNode.getCode().contains("while") && controlFlowNodes.get(controlFlowNodes.size()-2) == pNode)
+					if(prevNode.getCode().contains("while") && controlFlowNodes.get(controlFlowNodes.size()-2) == prevNode)
 					{
-						System.out.println(pNode instanceof ConditionalNode);
-						System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName() + "T");
-						graphEdges.add(new ConditionalEdge(pNode, cNode,"true"));
+						graphEdges.add(new ConditionalEdge(prevNode, curNode,"true"));
 					}
-					else if(pNode.getCode().contains("while") && cNode.getCode().contains("while"))
+					else if(prevNode.getCode().contains("while") && curNode.getCode().contains("while"))
 					{
-						graphEdges.add(new ConditionalEdge(cNode,pNode,"false"));
+						graphEdges.add(new ConditionalEdge(curNode,prevNode,"false"));
 					}
 					else
 					{
-						//System.out.println(pNode.getCode + " contains while? " + pNode.get);
-						System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName() + " V2");
-						graphEdges.add(new Edge(pNode, cNode));
+						graphEdges.add(new Edge(prevNode, curNode));
 					}
-//					System.out.println("INSIDE MAKING " + pNode.getName() + " " + cNode.getName() + "T");
-//					graphEdges.add(new ConditionalEdge(pNode, cNode,"true"));
-					//creating link between 4 and 5 on true condition
+	
+					tempNode = parseStatements(((Block )whileLine.getBody()).statements(), curNode, true);
 					
-					temp = parseStatements(((Block )whileLine.getBody()).statements(), cNode, true);
-					
-					if(temp.getCode().contains("return") || temp.getCode().contains("throw"))
+					if(tempNode.getCode().contains("return") || tempNode.getCode().contains("throw"))
 					{
-						if(controlFlowNodes.get(controlFlowNodes.size()-2) == cNode)
+						if(controlFlowNodes.get(controlFlowNodes.size()-2) == curNode)
 						{
-							System.out.println("making edge " + cNode.getName() + " " + temp.getName());
-							graphEdges.add(new ConditionalEdge(cNode, temp,"true"));
+							graphEdges.add(new ConditionalEdge(curNode, tempNode,"true"));
 						}
 						statementBlock.clear();
-						//break;
 					}
 					else
 					{
-						
-						
-	//					if(temp.getName().contains("while"))
-	//						graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
-	//					
-						System.out.println("new COND " + temp.getName() + " " + cNode.getName());
-						//link up this and the next statement down if the next down is 
-						
-						//INode temp = parseStatements(((Block )whileLine.getBody()).statements(), cNode, true);
-						
-						//graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
-						
-						if(temp.getCode().contains("while"))
+						if(tempNode.getCode().contains("while"))
 						{
-							System.out.println("y");
-							System.out.println("FUCKKKKKKKKKKKKK " + temp.getName() + " >> " + cNode.getName() + " FALSE");
-							graphEdges.add(new ConditionalEdge(temp,cNode,"false"));
+							graphEdges.add(new ConditionalEdge(tempNode,curNode,"false"));
 						}
 						else
 						{
-							//System.out.println("n");
-							System.out.println("FK2 " + temp.getName() + " .. " + cNode.getName());
-							graphEdges.add(new Edge(temp,cNode));
+							graphEdges.add(new Edge(tempNode,curNode));
 						}
 					}
-					
-					System.out.println("hit it" + "condition " + conditional + " cd2 " + cd2 + "cNode " + cNode.getName() + "pNode " + pNode.getName());
 					conditional = false;
 					cd2 =true;
-					//skip = true;
 					condFalse = true;
-					
-					
 				break;
 				default: 
-					cNode = new Node("BasicBlock " + currentNode, codeLine.toString());
+					curNode = new Node("BasicBlock " + currentNode, codeLine.toString());
 					controlFlowNodes.add(new Node("BasicBlock " + currentNode, codeLine.toString()));
 				break;	
 			}
-			if(cNode.getCode().contains("return"))
+			if(curNode.getCode().contains("return"))
 			{
 				
 			}
@@ -320,36 +255,24 @@ public class ControlFlowParser
 			{
 				if(conditional == true)
 				{
-					System.out.println("access1 MAKING " + pNode.getName() + " " + cNode.getName() + "true");
-					graphEdges.add(new ConditionalEdge(pNode, cNode, "true"));
+					graphEdges.add(new ConditionalEdge(prevNode, curNode, "true"));
 					conditional = false;
 				}
 				else if(cd2==true && conditional==false)
 				{
-					System.out.println("acess2 MAKING " + pNode.getName() + "  " + cNode.getName() + "FALSE");
-					graphEdges.add(new ConditionalEdge(pNode, cNode, "false"));
+					graphEdges.add(new ConditionalEdge(prevNode, curNode, "false"));
 					cd2=false;
 					conditional =false;
 				}
 				else
 				{
-					System.out.println("access3 MAKING " + pNode.getName() + " " + cNode.getName() + "NOCOND");
-					//System.out.println("access3");
-					graphEdges.add(new Edge(pNode,cNode));
+					graphEdges.add(new Edge(prevNode,curNode));
 				}
 			}
-			else
-			{
-				//System.out.println("RANDY MAKING " + pNode.getName() + " " + cNode.getName () + "true");
-				//graphEdges.add(new ConditionalEdge(pNode,cNode,"true"));
-			
-			}
-		
-			
 			condFalse = false;
-			pNode = cNode;	
+			prevNode = curNode;	
 		}
-		return pNode;
+		return prevNode;
 	}
 
 	
@@ -477,22 +400,18 @@ public class ControlFlowParser
 					/*If the first node inside of the loop is another conditional  then we want an edge with the condition false
 					 * from that node to the current node (so if the next conditional 
 					 */
-					System.out.println(recentNode.getName() + " ZZZZZZZ");
 					if(nextNode.getCode().contains("while") || nextNode.getCode().contains("if"))
 					{
-						System.out.println("entering next recent " + nextNode.getName() + " " + recentNode.getName());
 						graphEdges.add(new ConditionalEdge(nextNode, recentNode, "false"));
 					}
 					//Otherwise there's no conditional inside so no need to link back the next statement to this (normal statement to conditional
 					else if(recentNode.getCode().contains("if"))
 					{
-						System.out.println("Recent node " + recentNode.getName());
 						finalStateNode = nextNode;
 						conditionalEdge = false;
 					}
 					else
 					{
-						System.out.println("Making edge 1 " + nextNode.getName() + " " + recentNode.getName());
 						graphEdges.add(new Edge(nextNode,recentNode));
 					}
 
@@ -541,8 +460,7 @@ public class ControlFlowParser
 					 * are under a conditional
 					 */
 					nextNode = parseStatements(((Block )whileLine.getBody()).statements(), recentNode, true);
-					System.out.println("returned");
-
+					
 					//If the first node inside this conditional is another conditional
 					if(nextNode.getCode().contains("while"))
 					{
@@ -579,22 +497,18 @@ public class ControlFlowParser
 				if(conditionalEdge == false)
 				{
 					/*Then we just add a plain edge*/
-					System.out.println("Making edge 2 " + previousNode.getName() + " " + recentNode.getName());
 					graphEdges.add(new Edge(previousNode, recentNode));
 				}
 				/*If there is then its a false edge, since the true case is dealt with by parseStatements()*/
 				else if(finalStateNode != null)
 				{
-					System.out.println("MAKING 69 " + previousNode.getName() + " " + finalStateNode.getName());
 					graphEdges.add(new Edge(previousNode, finalStateNode));
 				}
 				else
 				{
-					System.out.println("Making edge 3 " + previousNode.getName() + " " + recentNode.getName());
 					graphEdges.add(new ConditionalEdge(previousNode, recentNode, "false"));
 					prevConditionalStatement = false;
 				}
-				//finalStateNode = null;
 				previousNode = recentNode;	
 				currentNode++;
 			}//End of while
@@ -604,15 +518,12 @@ public class ControlFlowParser
 			 */
 			if(previousNode.getCode().contains("if") || previousNode.getCode().contains("while") || previousNode.getCode().contains("for"))
 			{
-				System.out.println("Making edge 6 " + previousNode.getName() + " " + recentNode.getName());
 				graphEdges.add(new ConditionalEdge(previousNode, exitNode, "false"));
 			}
 			else
 			{
-				System.out.println("Making edge 5 " + previousNode.getName() + " " + recentNode.getName());
 				graphEdges.add(new Edge(previousNode, exitNode));
 			}
-			
 			printCollectionContents();
 	}
 		
@@ -632,10 +543,324 @@ public class ControlFlowParser
 	}
 
 
-	/*Takes in the source folder and adds all .java files in it and its subdirectories to projectFiles*/
-	private void collectJavaFiles(File srcFolder) throws IOException
+	private void getCFG(List<BasicBlock> methodBlocks)
 	{
-		projectFiles = (List<File>) FileUtils.listFiles(srcFolder, new SuffixFileFilter(".java"), TrueFileFilter.INSTANCE);
+		BasicBlock exitBlock = new BasicBlock("EXIT");
+		
+		int loopCounter = 0;
+
+		for(int i = 0; i < methodBlocks.size()-1; i++)
+		{
+			BasicBlock firstBlock = methodBlocks.get(i);
+			BasicBlock secondBlock = methodBlocks.get(i+1);
+			
+			
+			//if we get a do, look for the while; and then loop back
+			
+			//if we get an if, we link a true edge to its body, a false edge to the next statement (another if, an else, just a statement)
+			if(firstBlock.containsString("if"))
+			{
+			//	graphEdges.add(new ConditionalEdge(firstBlock, secondBlock, "true"));
+			//	graphEdges.add(new ConditionalEdge(firstBlock, methodBlocks.get(i+2),"false"));
+			}
+			//if we get a for we link a true edge to the body
+			//how to link body back to the for?
+			//how to link for to next statement?
+			else if(firstBlock.containsString("for"))
+			{
+			//	graphEdges.add(new ConditionalEdge(firstBlock, secondBlock, "true"));
+			}
+			//if we get a switch, case x link to each case which are in following blocks
+			else if(firstBlock.containsString("switch"))
+			{
+				for(int a = i+1; a < methodBlocks.size()-1; a++)
+				{
+					if(methodBlocks.get(a).containsString("case") || methodBlocks.get(a).containsString("default"))
+					{
+						//System.out.println("making from " + i + " to");
+					//	graphEdges.add(new ConditionalEdge(firstBlock, methodBlocks.get(a),methodBlocks.get(a).getFirstLine()));
+					}
+					else if(methodBlocks.get(a).containsString("switch"))
+					{
+						break;
+					}
+				}
+			}
+			
+			//ideas
+			//if its the first conditional like a for/while we need to find the empty block, then it links on false to the block after it
+			//once first one is done then its true to the 2nd block, false to the 3rd if it has no conditionals
+				
+//				if(firstBlock.containsString("while") && secondBlock.containsString("while"))
+//				{
+//					//make edge from second on false to first
+//					//make edge from first to second on true
+//				}
+				//if,while,do,switch,for,return,throw
+//			 Traverse the list of basic blocks and add a CFG edge from each node Bi to each node Bj if and only
+//			 if Bj can immediately follow Bi
+//			 in some execution sequence, that is, if:
+//			 (a) there is a conditional or unconditional goto statement from the last statement of Bi to the first
+//			 statement of Bj , or
+//			 (b) Bj immediately follows Bi
+//			 in the order of the program, and Bi does not end in an unconditional
+//			 goto statement.
+//			 3. Label edges that represent conditional transfers of control as ï¿½Tï¿½ (true) or ï¿½Fï¿½ (false); other edges are
+//			 unlabeled
+			//}
+		}
+		
+		//graphEdges.add(new Edge(methodBlocks.get(methodBlocks.size()-1),exitBlock));
+		
+		for(IEdge gEdges : graphEdges)
+		{
+		//	System.out.println("BLOCK " + gEdges.getFrom().getBlockNum() + " TO BLOCK " + gEdges.getTo().getBlockNum() + " COND: " + gEdges.getCondition());
+		}
+	}
+	
+	//Slightly modified the algorithm, instead of passing in a sequence of program statements
+	//we take in a methoddeclaration and get the statements inside not a big deal
+	
+	private void recursiveBlockFinder (List<Statement> inputContents, List<BasicBlock> methodBlocks)
+	{
+		BasicBlock temp = new BasicBlock();
+		while(!inputContents.isEmpty())
+		{
+			Statement methodStatement = inputContents.remove(0);
+			
+			switch(methodStatement.getNodeType())
+			{
+				case switchCase:
+					if(((SwitchCase) methodStatement).isDefault())
+					{
+						methodBlocks.add(temp);
+						
+						temp = new BasicBlock();
+						temp.addContent("default" + "\n");
+					}
+					else
+					{
+						methodBlocks.add(temp);
+						
+						temp = new BasicBlock();
+						temp.addContent("case " + ((SwitchCase) methodStatement).getExpression().toString() + "\n");
+					}
+					break;
+				case switchType:
+					temp.addContent("switch " + ((SwitchStatement) methodStatement).getExpression().toString() + "\n");
+					methodBlocks.add(temp);
+					
+					//Create new block for insides
+					temp = new BasicBlock();
+					List<Statement> switchContents = ((SwitchStatement) methodStatement).statements();
+					recursiveBlockFinder(switchContents, methodBlocks);
+				break;
+				case forType:
+					temp.addContent("for " + ((ForStatement) methodStatement).getExpression().toString());
+					methodBlocks.add(temp);
+					
+					//Create new block for insides
+					temp = new BasicBlock();
+					List<Statement> forContents = ((Block) ((ForStatement) methodStatement).getBody()).statements();
+					recursiveBlockFinder(forContents, methodBlocks);
+				break;
+					
+				case whileType:
+					temp.addContent("while " + ((WhileStatement) methodStatement).getExpression().toString());
+					methodBlocks.add(temp);
+					
+					//Create new block for insides
+					temp = new BasicBlock();
+					List<Statement> whileContents = ((Block) ((WhileStatement) methodStatement).getBody()).statements();
+					recursiveBlockFinder(whileContents, methodBlocks);
+				break;
+				case ifType:
+					temp.addContent("if " + ((IfStatement) methodStatement).getExpression().toString());
+					methodBlocks.add(temp);
+					
+					//Create new block for insides
+					temp = new BasicBlock();
+					List<Statement> thenContents = ((Block) ((IfStatement) methodStatement).getThenStatement()).statements();
+					recursiveBlockFinder(thenContents, methodBlocks);
+					
+					temp = new BasicBlock();
+					List<Statement> elseContents;
+					try
+					{
+						elseContents = ((Block) ((IfStatement) methodStatement).getElseStatement()).statements();
+					}
+					catch(ClassCastException e)
+					{
+						Statement elseContent = ((IfStatement) methodStatement).getElseStatement();
+						elseContents = new ArrayList<Statement>();
+						elseContents.add(elseContent);
+					}
+					catch(NullPointerException e)
+					{
+						break;
+					}
+					
+					recursiveBlockFinder(elseContents, methodBlocks);
+					break;
+				default:
+					temp.addContent(methodStatement.toString());
+				break;
+			}
+		}
+		methodBlocks.add(temp);
+		return;
+	
+	}
+	
+	private List<BasicBlock> GetBasicBlocks(MethodDeclaration inputMethod)
+	{
+		List<BasicBlock> methodBlocks = new ArrayList<BasicBlock>();
+		methodBlocks.add(entryBlock);
+		List<Statement> statements = inputMethod.getBody().statements();
+		
+		//counter to count number of blocks we've done
+		//int counter = 0;
+		boolean start = false;
+		//So while we have statements to parse
+		
+
+		BasicBlock temp = new BasicBlock();
+		
+		while(!statements.isEmpty())
+		{
+			Statement methodStatement = statements.remove(0);
+			//Case 0, the first statement in the program is a leader
+			if(start == false)
+			{
+				temp.addContent(methodStatement.toString());
+				start = true;
+			}
+			else
+			{
+				switch(methodStatement.getNodeType())
+				{
+					case ifType:
+						temp.addContent("if " + ((IfStatement) methodStatement).getExpression().toString());
+						methodBlocks.add(temp);
+						
+						//Create new block for insides
+						temp = new BasicBlock();
+						List<Statement> thenContents = ((Block) ((IfStatement) methodStatement).getThenStatement()).statements();
+						recursiveBlockFinder(thenContents, methodBlocks);
+						
+						temp = new BasicBlock();
+						List<Statement> elseContents;
+						try
+						{
+							elseContents = ((Block) ((IfStatement) methodStatement).getElseStatement()).statements();
+						}
+						catch(ClassCastException e)
+						{
+							Statement elseContent = ((IfStatement) methodStatement).getElseStatement();
+							elseContents = new ArrayList<Statement>();
+							elseContents.add(elseContent);
+						}
+						
+						recursiveBlockFinder(elseContents, methodBlocks);
+					break;
+					case doType:
+						temp.addContent("do");
+						methodBlocks.add(temp);
+						temp = new BasicBlock();
+						List<Statement> doContents = ((Block) ((DoStatement) methodStatement).getBody()).statements();
+						recursiveBlockFinder(doContents, methodBlocks);
+						temp.addContent("while " + ((DoStatement) methodStatement).getExpression().toString());
+						methodBlocks.add(temp);
+						temp = new BasicBlock();
+						break;
+					//case returntype, throwtype
+					case returnType:
+						temp.addContent("return " + ((ReturnStatement) methodStatement).getExpression().toString());
+						methodBlocks.add(temp);
+						
+						temp = new BasicBlock();
+					break;
+					case throwType:
+						temp.addContent("throw " + ((ThrowStatement) methodStatement).getExpression().toString());
+						methodBlocks.add(temp);
+						
+						temp = new BasicBlock();
+					break;
+					case switchType:
+						temp.addContent("switch " + ((SwitchStatement) methodStatement).getExpression().toString());
+						methodBlocks.add(temp);
+						
+						//Create new block for insides
+						temp = new BasicBlock();
+						List<Statement> switchContents = ((SwitchStatement) methodStatement).statements();
+						recursiveBlockFinder(switchContents, methodBlocks);
+					break;
+					case forType:
+						temp.addContent("for " + ((ForStatement) methodStatement).getExpression().toString());
+						methodBlocks.add(temp);
+				
+						//Create new block for insides
+						temp = new BasicBlock();
+						List<Statement> forContents = ((Block) ((ForStatement) methodStatement).getBody()).statements();
+						recursiveBlockFinder(forContents, methodBlocks);
+					break;
+					case whileType:
+							temp.addContent("while " + ((WhileStatement) methodStatement).getExpression().toString());
+							methodBlocks.add(temp);
+							
+							//Create new block for insides
+							temp = new BasicBlock();
+							List<Statement> whileContents = ((Block) ((WhileStatement) methodStatement).getBody()).statements();
+							System.out.println("entering recursion");
+							recursiveBlockFinder(whileContents, methodBlocks);
+							
+							//Problem is here that the list of statements could be started by a conditional
+							//which means it only sees the conditional+its body and then anything not inside of it
+							//so we need to parse it difference since for examples while(while)), statements
+							//would give a single item, the whilestatement. so we need to parse it in a special way
+							
+						break;
+					//case returnType:
+						//break;
+					default:
+							//add the content to the active basicblock
+							temp.addContent(methodStatement.toString());
+							//methodBlocks.add(counter, methodStatement);
+						break;
+				}
+			}
+		}
+		methodBlocks.add(temp);
+		
+		List<Integer> toRemove = new ArrayList<Integer>();
+		for(int j = 0; j < methodBlocks.size(); j++)
+		{
+			if(methodBlocks.get(j).getContents().size() == 0)
+			{
+				methodBlocks.remove(j);
+			}
+		}
+		
+		for(int i = 0; i < methodBlocks.size(); i++)
+		{
+			System.out.println("BLOCK " + i);
+			System.out.println(methodBlocks.get(i).getContents().toString());
+			System.out.println();
+			System.out.println();
+		}
+//		algorithm GetBasicBlocks
+//		Input. A sequence of program statements.
+//		Output. A list of basic blocks with each statement in exactly one basic block.
+//		Method.
+//		1. Determine the set of leaders: the first statements of basic blocks. We use the following rules.
+//		(a) The first statement in the program is a leader.
+//		(b) Any statement that is the target of an conditional or unconditional goto statement is a leader.
+//		(c) Any statement that immediately follows a conditional or unconditional goto statement is a leader.
+//		Note: control transfer statements such as while, if-else, repeat-until, and switch statements are all
+//		ï¿½conditional goto statementsï¿½.
+//		2. Construct the basic blocks using the leaders. For each leader, its basic block consists of the leader and
+//		all statements up to but not including the next leader or the end of the program.
+		return methodBlocks;
 	}
 	
 	private void printMethodContents(MethodDeclaration inputMethod)
@@ -689,10 +914,6 @@ public class ControlFlowParser
 				
 				for (Statement individualStatements: thenStatement)
 				{
-					//ExpressionStatement temp = (ExpressionStatement) individualStatements;
-					//System.out.println(temp.properties().values().toString());
-					
-					//System.out.println((ExpressionStatement) individualStatements.properties().values().toString());
 					System.out.print("nodeType " + individualStatements.getNodeType() + ";");
 					System.out.print("Line num: " + unit.getLineNumber(individualStatements.getStartPosition()) + "(IN THEN) Code : " +individualStatements.toString());
 				}
