@@ -1,6 +1,7 @@
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jdt.core.dom.AST;
@@ -109,11 +110,11 @@ public class ControlFlowParser
 						curNode = new ConditionalNode("BasicBlock" + currentNode, "for" + forLine.getExpression());
 						controlFlowNodes.add(curNode);
 						
-						if(prevNode.getCode().contains("for") && controlFlowNodes.get(controlFlowNodes.size()-2) == prevNode)
+						if((prevNode.getCode().contains("for") || prevNode.getCode().contains("while")) && controlFlowNodes.get(controlFlowNodes.size()-2) == prevNode)
 						{
-							graphEdges.add(new ConditionalEdge(prevNode, curNode,"ture"));
+							graphEdges.add(new ConditionalEdge(prevNode, curNode,"true"));
 						}
-						else if(prevNode.getCode().contains("for") && curNode.getCode().contains("for"))
+						else if((prevNode.getCode().contains("for") || prevNode.getCode().contains("while")) && ((prevNode.getCode().contains("while")) || curNode.getCode().contains("for")))
 						{
 							graphEdges.add(new ConditionalEdge(curNode,prevNode,"false"));
 						}
@@ -134,7 +135,7 @@ public class ControlFlowParser
 						}
 						else
 						{
-							if(tempNode.getCode().contains("for"))
+							if(tempNode.getCode().contains("for") || tempNode.getCode().contains("while"))
 							{
 								graphEdges.add(new ConditionalEdge(tempNode ,curNode, "false"));
 							}
@@ -167,8 +168,6 @@ public class ControlFlowParser
 					statementBlock.clear();					
 				break;
 				
-				case switchType:
-				break;
 				case throwType:
 					ThrowStatement throwLine = (ThrowStatement) codeLine;
 					curNode = new ConditionalNode("BasicBlock" + currentNode, "throw " + throwLine.getExpression());
@@ -203,11 +202,11 @@ public class ControlFlowParser
 					curNode =  new ConditionalNode("BasicBlock " + currentNode, "while " + whileLine.getExpression());
 					controlFlowNodes.add(curNode);
 					
-					if(prevNode.getCode().contains("while") && controlFlowNodes.get(controlFlowNodes.size()-2) == prevNode)
+					if((prevNode.getCode().contains("while") || (prevNode.getCode().contains("for"))) && controlFlowNodes.get(controlFlowNodes.size()-2) == prevNode)
 					{
 						graphEdges.add(new ConditionalEdge(prevNode, curNode,"true"));
 					}
-					else if(prevNode.getCode().contains("while") && curNode.getCode().contains("while"))
+					else if((prevNode.getCode().contains("while") || (prevNode.getCode().contains("for"))) && (curNode.getCode().contains("while") || curNode.getCode().contains("for")))
 					{
 						graphEdges.add(new ConditionalEdge(curNode,prevNode,"false"));
 					}
@@ -228,7 +227,7 @@ public class ControlFlowParser
 					}
 					else
 					{
-						if(tempNode.getCode().contains("while"))
+						if(tempNode.getCode().contains("while") || (prevNode.getCode().contains("for")))
 						{
 							graphEdges.add(new ConditionalEdge(tempNode,curNode,"false"));
 						}
@@ -417,9 +416,9 @@ public class ControlFlowParser
 
 					
 					//parse the else
-					Statement elseStatement = ifLine.getElseStatement();
-					contents.add(0, elseStatement);
-					
+//					Statement elseStatement = ifLine.getElseStatement();
+//					contents.add(0, elseStatement);
+				
 					//if we go inside an if then
 					//we need to set someth
 					
@@ -434,7 +433,7 @@ public class ControlFlowParser
 					
 					nextNode = parseStatements(((Block )forLine.getBody()).statements(), recentNode, true);
 					System.out.println("returned");
-					if(nextNode.getCode().contains("for"))
+					if(nextNode.getCode().contains("for") || nextNode.getCode().contains("while"))
 					{
 						graphEdges.add(new ConditionalEdge(nextNode, recentNode, "false"));
 					}
@@ -991,6 +990,8 @@ public class ControlFlowParser
 	 */
 	private MethodDeclaration hasMainMethod(List<AbstractTypeDeclaration> srcTypes)
 	{
+		int s = 0;
+		List<MethodDeclaration> methodList = new ArrayList<MethodDeclaration>();
 			/*Get all top level nodes (declarations)*/
 			List<AbstractTypeDeclaration> types = srcTypes;
 		
@@ -1009,21 +1010,48 @@ public class ControlFlowParser
 						if (body.getNodeType() == ASTNode.METHOD_DECLARATION)
 						{
 							MethodDeclaration method = (MethodDeclaration) body;
-							if(method.getName().getFullyQualifiedName().toLowerCase().equals("main"))
-							{
-								/*getModifiers here is 9 because the value of static is 8 and public is 1. JDT
-								 *adds all modifiers values up.
-								 */
-								if(method.getModifiers() == 9 && method.getReturnType2().toString().equals("void"))
-								{
-									/*Value is assigned here so that the program knows where to start parsing from*/
-									return method;
-								}
-							}
+							
+							//for(int a = 0; a < bodies.size(); a++)
+							//{
+								//System.out.println(a);
+								System.out.println(s + " " + method.getName().getFullyQualifiedName().toLowerCase());
+								methodList.add(method);
+								s++;
+							//}
+							
+							boolean selected = false;
+							String input;
+							
+							
+						
+//							if(method.getName().getFullyQualifiedName().toLowerCase().equals("main"))
+//							{
+//								/*getModifiers here is 9 because the value of static is 8 and public is 1. JDT
+//								 *adds all modifiers values up.
+//								 */
+//								if(method.getModifiers() == 9 && method.getReturnType2().toString().equals("void"))
+//								{
+//									/*Value is assigned here so that the program knows where to start parsing from*/
+//									return method;
+//								}
+//							}
 						}
 					}
 				}
 			}
-		return null;
+			//boolea
+			while (true)
+			{
+				System.out.println("Select a method number");
+										
+				Scanner in = new Scanner(System.in);
+				
+				String input = in.nextLine();
+				
+				//if (input.toLowerCase().equals(methodList.get(index)))
+				return methodList.get(Integer.parseInt(input));
+				
+			}
+		//return null;
 	}
 }
