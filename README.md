@@ -1,6 +1,9 @@
 ControlFlowGenerator
 ====================
 
-Control flow graph generator for java projects
-Version:Functionality
-1.0:Prints out contents of main method for given file
+Control flow Graph generator for Java projects.
+
+Current version:
+	V1.0
+	When given a source location it prompts the user for a method they want a CFG for. 
+	Once given a method it outputs the set of Nodes and Edges for the CFG.

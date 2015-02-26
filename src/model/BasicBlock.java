@@ -3,6 +3,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+//TODO refer back to the paper and append hidden symbols to identify loops.
+//TODO create graphical display
+//TODO fix bugs
 
 public class BasicBlock
 {
