@@ -19,7 +19,8 @@ public class ControlFlowGUI
 	private JFrame guiFrame;
 	private final int xSize = 600;
 	private final int ySize = 300;
-
+	private String frameTitle = "CFG Main Menu";
+	
 	/**
 	 * Create the application.
 	 */
@@ -36,7 +37,7 @@ public class ControlFlowGUI
 		// TODO add multiple monitor support
 		Dimension screenDims = Toolkit.getDefaultToolkit().getScreenSize();
 
-		guiFrame = new JFrame();
+		guiFrame = new JFrame(frameTitle);
 		guiFrame.setBounds((int) screenDims.getWidth() / 2 - (xSize / 2),
 				(int) screenDims.getHeight() / 2 - (ySize / 2), xSize, ySize);
 		guiFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
